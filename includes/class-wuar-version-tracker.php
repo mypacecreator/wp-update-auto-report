@@ -109,10 +109,10 @@ class WUAR_Version_Tracker {
 			foreach ( $diff as $item ) {
 				$lines[] = sprintf(
 					'| %s | %s | %s | %s |',
-					esc_html( $item['type'] ),
-					esc_html( $item['name'] ),
-					esc_html( $item['before'] ),
-					esc_html( $item['after'] )
+					$this->escape_md_cell( $item['type'] ),
+					$this->escape_md_cell( $item['name'] ),
+					$this->escape_md_cell( $item['before'] ),
+					$this->escape_md_cell( $item['after'] )
 				);
 			}
 			$lines[] = '';
@@ -149,6 +149,10 @@ class WUAR_Version_Tracker {
 		}
 
 		return $result;
+	}
+
+	private function escape_md_cell( string $text ): string {
+		return str_replace( '|', '\\|', wp_strip_all_tags( $text ) );
 	}
 
 	private function get_current_themes(): array {
