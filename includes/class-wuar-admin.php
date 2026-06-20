@@ -164,6 +164,10 @@ class WUAR_Admin {
 		$this->tracker->save_snapshot();
 		$snapshot = $this->tracker->get_snapshot();
 
+		if ( ! $snapshot ) {
+			wp_send_json_error( [ 'message' => __( 'スナップショットの保存に失敗しました。', 'wp-update-auto-report' ) ] );
+		}
+
 		wp_send_json_success( [
 			'recorded_at' => $snapshot['recorded_at'],
 			'label'       => $this->get_snapshot_label(),

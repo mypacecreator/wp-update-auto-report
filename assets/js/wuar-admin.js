@@ -71,6 +71,7 @@
 			const html = markdownToHtml( md );
 
 			try {
+				// ClipboardItem API でリッチテキスト＋プレーンテキストを書き込む
 				await navigator.clipboard.write( [
 					new ClipboardItem( {
 						'text/html':  new Blob( [ html ], { type: 'text/html' } ),
@@ -79,9 +80,32 @@
 				] );
 				flashBtn( copyBtn, 'コピーしました！', 'リッチテキストでコピー' );
 			} catch {
-				// フォールバック: プレーンテキストでコピー
-				await navigator.clipboard.writeText( md );
-				flashBtn( copyBtn, 'コピーしました（テキスト）', 'リッチテキストでコピー' );
+				// ClipboardItem 失敗 → Clipboard API のプレーンテキストで再試行
+				if ( navigator.clipboard && navigator.clipboard.writeText ) {
+					try {
+						await navigator.clipboard.writeText( md );
+						flashBtn( copyBtn, 'コピーしました（テキスト）', 'リッチテキストでコピー' );
+					} catch {
+						execCommandFallback();
+					}
+				} else {
+					// Clipboard API 自体が存在しない環境
+					execCommandFallback();
+				}
+			}
+
+			function execCommandFallback() {
+				try {
+					resultTA.select();
+					const ok = document.execCommand( 'copy' );
+					if ( ok ) {
+						flashBtn( copyBtn, 'コピーしました（テキスト）', 'リッチテキストでコピー' );
+					} else {
+						alert( 'コピーできませんでした。テキストエリアを手動で選択してコピーしてください。' );
+					}
+				} catch {
+					alert( 'コピーできませんでした。テキストエリアを手動で選択してコピーしてください。' );
+				}
 			}
 		} );
 	}

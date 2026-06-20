@@ -36,6 +36,7 @@ final class WP_Update_Auto_Report {
 	}
 
 	private function __construct() {
+		load_plugin_textdomain( 'wp-update-auto-report', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 		new WUAR_Admin();
 	}
 }
