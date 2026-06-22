@@ -23,6 +23,8 @@ define( 'WUAR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 require_once WUAR_PLUGIN_DIR . 'includes/class-wuar-version-tracker.php';
 require_once WUAR_PLUGIN_DIR . 'includes/class-wuar-admin.php';
+require_once WUAR_PLUGIN_DIR . 'includes/class-wuar-release-notes.php';
+require_once WUAR_PLUGIN_DIR . 'includes/class-wuar-ai-reporter.php';
 
 final class WP_Update_Auto_Report {
 

@@ -14,6 +14,7 @@ class WUAR_Admin {
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
 		add_action( 'wp_ajax_wuar_save_snapshot', [ $this, 'ajax_save_snapshot' ] );
 		add_action( 'wp_ajax_wuar_generate_report', [ $this, 'ajax_generate_report' ] );
+		add_action( 'wp_ajax_wuar_generate_ai_report', [ $this, 'ajax_generate_ai_report' ] );
 	}
 
 	public function register_menu(): void {
@@ -55,6 +56,7 @@ class WUAR_Admin {
 				'today'         => wp_date( 'Ymd' ),
 				'hasSnapshot'   => $this->tracker->get_snapshot() ? '1' : '0',
 				'snapshotLabel' => $this->get_snapshot_label(),
+				'hasAiSupport'  => function_exists( 'wp_ai_client_prompt' ) ? '1' : '0',
 			]
 		);
 	}
@@ -127,6 +129,17 @@ class WUAR_Admin {
 					>
 						<?php esc_html_e( 'レポートを生成する', 'wp-update-auto-report' ); ?>
 					</button>
+
+					<?php if ( function_exists( 'wp_ai_client_prompt' ) ) : ?>
+						<button
+							id="wuar-ai-generate-btn"
+							class="button button-secondary"
+							<?php echo $has_snapshot ? '' : 'disabled'; ?>
+						>
+							<?php esc_html_e( 'AI詳細レポートを生成', 'wp-update-auto-report' ); ?>
+						</button>
+					<?php endif; ?>
+
 					<span id="wuar-loading" class="wuar-loading" hidden>
 						<?php esc_html_e( 'レポートを作成中...', 'wp-update-auto-report' ); ?>
 					</span>
@@ -186,6 +199,41 @@ class WUAR_Admin {
 		}
 
 		$report = $this->tracker->generate_fixed_report();
+		$this->tracker->reset_snapshot();
+
+		wp_send_json_success( [ 'report' => $report ] );
+	}
+
+	public function ajax_generate_ai_report(): void {
+		check_ajax_referer( 'wuar_nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( [ 'message' => __( '権限がありません。', 'wp-update-auto-report' ) ] );
+		}
+
+		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
+			wp_send_json_error( [ 'message' => __( 'WordPress 7.0 以上が必要です。', 'wp-update-auto-report' ) ] );
+		}
+
+		if ( ! $this->tracker->get_snapshot() ) {
+			wp_send_json_error( [ 'message' => __( 'スナップショットが存在しません。STEP 1 でスナップショットを取得してください。', 'wp-update-auto-report' ) ] );
+		}
+
+		$diff_items = $this->tracker->get_diff_items();
+		if ( empty( $diff_items ) ) {
+			wp_send_json_error( [ 'message' => __( 'アップデートがありません。', 'wp-update-auto-report' ) ] );
+		}
+
+		$release_notes_fetcher = new WUAR_Release_Notes();
+		$release_notes         = $release_notes_fetcher->fetch( $diff_items );
+
+		$ai_reporter = new WUAR_AI_Reporter();
+		$report      = $ai_reporter->generate( $diff_items, $release_notes );
+
+		if ( is_wp_error( $report ) ) {
+			wp_send_json_error( [ 'message' => $report->get_error_message() ] );
+		}
+
 		$this->tracker->reset_snapshot();
 
 		wp_send_json_success( [ 'report' => $report ] );

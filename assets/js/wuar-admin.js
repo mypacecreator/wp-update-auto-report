@@ -63,6 +63,29 @@
 		} );
 	}
 
+	// ---- AI Generate -----------------------------------------------------
+
+	const aiGenerateBtn = document.getElementById( 'wuar-ai-generate-btn' );
+
+	if ( aiGenerateBtn ) {
+		aiGenerateBtn.addEventListener( 'click', async () => {
+			aiGenerateBtn.disabled = true;
+			loadingEl.hidden = false;
+			resultArea.hidden = true;
+
+			try {
+				const data = await post( 'wuar_generate_ai_report' );
+				resultTA.value = data.report;
+				resultArea.hidden = false;
+			} catch ( err ) {
+				alert( 'AI レポート生成に失敗しました: ' + err.message );
+			} finally {
+				aiGenerateBtn.disabled = false;
+				loadingEl.hidden = true;
+			}
+		} );
+	}
+
 	// ---- Copy (ClipboardItem — rich text) --------------------------------
 
 	if ( copyBtn ) {
