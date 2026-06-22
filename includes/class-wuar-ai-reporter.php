@@ -45,14 +45,10 @@ class WUAR_AI_Reporter {
 			$diff_and_notes = preg_replace( '/^~~~+/m', ' $0', $diff_and_notes );
 			$prompt         = str_replace( '{diff_and_notes}', $diff_and_notes, $template );
 
-			// モデル選択フィルターを適用
-			add_filter( 'using_model_preference', [ $this, 'filter_model_preference' ] );
-
 			// Connectors API 呼び出し（メタデータ付き）
 			$ai_client = wp_ai_client_prompt( $prompt );
+			$ai_client = $ai_client->using_model_preference( 'claude-opus-4-8' );
 			$result    = $ai_client->generate_text_result();
-
-			remove_filter( 'using_model_preference', [ $this, 'filter_model_preference' ] );
 
 			if ( is_wp_error( $result ) ) {
 				return new WP_Error(
@@ -65,8 +61,16 @@ class WUAR_AI_Reporter {
 				);
 			}
 
+			// 結果の妥当性を検証
+			if ( ! is_array( $result ) || ! isset( $result['content'] ) ) {
+				return new WP_Error(
+					'wuar_ai_invalid_result',
+					__( 'AI レポート生成の結果形式が予期と異なります。', 'wp-update-auto-report' )
+				);
+			}
+
 			// メタデータ（使用モデル）を結果に附加
-			$text  = $result['content'] ?? '';
+			$text  = $result['content'];
 			$model = $result['model'] ?? __( '不明', 'wp-update-auto-report' );
 
 			return $text . "\n\n---\n\n" . sprintf(
@@ -133,20 +137,6 @@ class WUAR_AI_Reporter {
 {diff_and_notes}
 ~~~
 TEMPLATE;
-	}
-
-	/**
-	 * モデル選択フィルター
-	 *
-	 * WordPress の using_model_preference フィルターに使用するモデルを指定
-	 *
-	 * @param string $model モデル名
-	 * @return string 使用するモデル
-	 */
-	public function filter_model_preference( $model ): string {
-		// デフォルト: Claude Opus 4.8
-		// 環境変数や設定オプションから取得することも可能
-		return 'claude-opus-4-8';
 	}
 
 	/**
