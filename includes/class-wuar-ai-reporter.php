@@ -61,8 +61,19 @@ class WUAR_AI_Reporter {
 				);
 			}
 
-			// 結果の妥当性を検証
-			if ( ! is_array( $result ) || ! isset( $result['content'] ) ) {
+			// 結果を正規化（配列またはオブジェクト両対応）
+			$text  = null;
+			$model = __( '不明', 'wp-update-auto-report' );
+
+			if ( is_array( $result ) ) {
+				$text  = $result['content'] ?? null;
+				$model = $result['model'] ?? $model;
+			} elseif ( is_object( $result ) ) {
+				$text  = $result->content ?? null;
+				$model = $result->model ?? $model;
+			}
+
+			if ( null === $text ) {
 				return new WP_Error(
 					'wuar_ai_invalid_result',
 					__( 'AI レポート生成の結果形式が予期と異なります。', 'wp-update-auto-report' )
@@ -70,12 +81,9 @@ class WUAR_AI_Reporter {
 			}
 
 			// メタデータ（使用モデル）を結果に附加
-			$text  = $result['content'];
-			$model = $result['model'] ?? __( '不明', 'wp-update-auto-report' );
-
 			return $text . "\n\n---\n\n" . sprintf(
 				__( '**使用モデル:** %s', 'wp-update-auto-report' ),
-				esc_html( $model )
+				sanitize_text_field( $model )
 			);
 
 		} catch ( \Throwable $e ) {
