@@ -25,10 +25,15 @@ class WUAR_Release_Notes {
 	const CACHE_DURATION = 24 * HOUR_IN_SECONDS;
 
 	/**
+	 * 1リクエストあたりの最大処理アイテム数 (タイムアウト防止)
+	 */
+	const MAX_ITEMS = 20;
+
+	/**
 	 * 差分アイテムからリリースノートを取得
 	 *
 	 * @param array $diff_items 差分アイテム配列
-	 * @return array リリースノート配列 (type => (slug => notes))
+	 * @return array リリースノート配列 (type => (name => notes))
 	 */
 	public function fetch( array $diff_items ): array {
 		$release_notes = [
@@ -37,7 +42,11 @@ class WUAR_Release_Notes {
 			'Theme'  => [],
 		];
 
+		$count = 0;
 		foreach ( $diff_items as $item ) {
+			if ( $count >= self::MAX_ITEMS ) {
+				break;
+			}
 			if ( ! is_array( $item ) ) {
 				continue;
 			}
@@ -63,6 +72,7 @@ class WUAR_Release_Notes {
 
 			$notes = $this->get_release_note( $type, $slug, $to );
 			$release_notes[ $type ][ $name ] = $notes;
+			$count++;
 		}
 
 		return $release_notes;

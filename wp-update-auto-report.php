@@ -5,7 +5,7 @@
  * Description:       WordPress コア・プラグイン・テーマのアップデート差分を検知し、クライアント提出用の月次作業報告書を自動生成します。
  * Version:           1.0.0
  * Requires at least: 6.0
- * Requires PHP:      7.4
+ * Requires PHP:      8.0
  * Author:            mypacecreator
  * Author URI:        https://github.com/mypacecreator
  * License:           GPL-2.0-or-later
