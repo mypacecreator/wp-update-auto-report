@@ -232,12 +232,19 @@ class WUAR_Release_Notes {
 	 * @return string キャッシュキー
 	 */
 	private function get_cache_key( string $type, string $slug, string $version ): string {
-		// sanitize_key() はドットを除去するため md5 でハッシュ化してキー衝突を防ぐ
+		// Core は同じ slug でもバージョンごとに内容が異なるためバージョンをキーに含める
+		// Plugin/Theme の API は version を使わないため slug 単位で共有キーにする
+		if ( 'Core' === $type ) {
+			return sprintf(
+				'wuar_rn_core_%s_%s',
+				sanitize_key( $slug ),
+				md5( $version )
+			);
+		}
 		return sprintf(
-			'wuar_rn_%s_%s_%s',
+			'wuar_rn_%s_%s',
 			strtolower( $type ),
-			sanitize_key( $slug ),
-			md5( $version )
+			sanitize_key( $slug )
 		);
 	}
 }
