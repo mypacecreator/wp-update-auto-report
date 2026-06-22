@@ -10,6 +10,10 @@ class WUAR_Admin {
 	public function __construct() {
 		$this->tracker = new WUAR_Version_Tracker();
 
+		// Anthropic AI 設定ページをロード
+		require_once WUAR_PLUGIN_DIR . 'includes/admin/class-wuar-ai-settings-page.php';
+		new WUAR_AI_Settings_Page();
+
 		add_action( 'admin_menu', [ $this, 'register_menu' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
 		add_action( 'wp_ajax_wuar_save_snapshot', [ $this, 'ajax_save_snapshot' ] );
@@ -131,7 +135,7 @@ class WUAR_Admin {
 						<?php esc_html_e( 'レポートを生成する', 'wp-update-auto-report' ); ?>
 					</button>
 
-					<?php if ( function_exists( 'wp_ai_client_prompt' ) ) : ?>
+					<?php if ( WUAR_Anthropic_Client::is_configured() ) : ?>
 						<button
 							id="wuar-ai-generate-btn"
 							class="button button-secondary"
@@ -139,6 +143,13 @@ class WUAR_Admin {
 						>
 							<?php esc_html_e( 'AI詳細レポートを生成', 'wp-update-auto-report' ); ?>
 						</button>
+					<?php else : ?>
+						<a href="<?php echo esc_url( admin_url( 'options-general.php?page=wuar-ai-settings' ) ); ?>" class="button button-secondary" title="<?php esc_attr_e( 'Anthropic API を設定', 'wp-update-auto-report' ); ?>">
+							<?php esc_html_e( 'AI詳細レポートを生成', 'wp-update-auto-report' ); ?>
+						</a>
+						<span style="margin-left: 10px; color: #999;">
+							<?php esc_html_e( '（Anthropic API の設定が必要です）', 'wp-update-auto-report' ); ?>
+						</span>
 					<?php endif; ?>
 
 					<span id="wuar-loading" class="wuar-loading" hidden>
@@ -232,8 +243,8 @@ class WUAR_Admin {
 			wp_send_json_error( [ 'message' => __( '権限がありません。', 'wp-update-auto-report' ) ] );
 		}
 
-		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
-			wp_send_json_error( [ 'message' => __( 'WordPress 7.0 以上が必要です。', 'wp-update-auto-report' ) ] );
+		if ( ! WUAR_Anthropic_Client::is_configured() ) {
+			wp_send_json_error( [ 'message' => __( 'Anthropic API が設定されていません。管理画面の設定ページで設定してください。', 'wp-update-auto-report' ) ] );
 		}
 
 		if ( ! $this->tracker->get_snapshot() ) {

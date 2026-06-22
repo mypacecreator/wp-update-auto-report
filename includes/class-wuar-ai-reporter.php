@@ -27,11 +27,11 @@ class WUAR_AI_Reporter {
 	 * @return string|WP_Error 生成されたレポート、またはエラー
 	 */
 	public function generate( array $diff_items, array $release_notes ) {
-		// WP 7.0 チェック
-		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
+		// Anthropic API が設定されているか確認
+		if ( ! WUAR_Anthropic_Client::is_configured() ) {
 			return new WP_Error(
-				'wuar_ai_not_supported',
-				__( 'AI レポート生成には WordPress 7.0 以上が必要です。', 'wp-update-auto-report' )
+				'wuar_ai_not_configured',
+				__( 'Anthropic API が設定されていません。管理画面の設定ページで設定してください。', 'wp-update-auto-report' )
 			);
 		}
 
@@ -45,9 +45,8 @@ class WUAR_AI_Reporter {
 			$diff_and_notes = preg_replace( '/^~~~+/m', ' $0', $diff_and_notes );
 			$prompt         = str_replace( '{diff_and_notes}', $diff_and_notes, $template );
 
-			// Connectors API 呼び出し
-			$ai_client = wp_ai_client_prompt( $prompt );
-			$result    = $ai_client->generate_text();
+			// Anthropic API 呼び出し
+			$result = WUAR_Anthropic_Client::generate( $prompt );
 
 			if ( is_wp_error( $result ) ) {
 				return new WP_Error(
