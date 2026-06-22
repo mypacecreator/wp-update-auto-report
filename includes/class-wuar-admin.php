@@ -15,6 +15,7 @@ class WUAR_Admin {
 		add_action( 'wp_ajax_wuar_save_snapshot', [ $this, 'ajax_save_snapshot' ] );
 		add_action( 'wp_ajax_wuar_generate_report', [ $this, 'ajax_generate_report' ] );
 		add_action( 'wp_ajax_wuar_generate_ai_report', [ $this, 'ajax_generate_ai_report' ] );
+		add_action( 'wp_ajax_wuar_reset_snapshot', [ $this, 'ajax_reset_snapshot' ] );
 	}
 
 	public function register_menu(): void {
@@ -96,6 +97,7 @@ class WUAR_Admin {
 
 			<div class="wuar-step">
 				<h2><?php esc_html_e( 'STEP 2 — アップデート後にレポートを生成', 'wp-update-auto-report' ); ?></h2>
+				<p><?php esc_html_e( 'レポートは何度でも生成できます。確認後、STEP 3 でスナップショットをリセットしてください。', 'wp-update-auto-report' ); ?></p>
 
 				<?php if ( ! $has_snapshot ) : ?>
 					<div class="notice notice-warning inline">
@@ -162,6 +164,27 @@ class WUAR_Admin {
 					</p>
 				</div>
 			</div>
+
+			<hr>
+
+			<div class="wuar-step">
+				<h2><?php esc_html_e( 'STEP 3 — レポート確定（スナップショットをリセット）', 'wp-update-auto-report' ); ?></h2>
+				<p><?php esc_html_e( 'レポートを確認し、作業が完了したらスナップショットをリセットしてください。次回のアップデート差分検出の準備が整います。', 'wp-update-auto-report' ); ?></p>
+
+				<?php if ( ! $has_snapshot ) : ?>
+					<div class="notice notice-info inline">
+						<p><?php esc_html_e( 'スナップショットが存在しないため、リセットの必要はありません。', 'wp-update-auto-report' ); ?></p>
+					</div>
+				<?php else : ?>
+					<button
+						id="wuar-reset-snapshot-btn"
+						class="button button-secondary"
+					>
+						<?php esc_html_e( 'スナップショットをリセット', 'wp-update-auto-report' ); ?>
+					</button>
+					<span id="wuar-reset-msg" class="wuar-inline-msg" hidden></span>
+				<?php endif; ?>
+			</div>
 		</div>
 		<?php
 	}
@@ -198,7 +221,6 @@ class WUAR_Admin {
 		}
 
 		$report = $this->tracker->generate_fixed_report();
-		$this->tracker->reset_snapshot();
 
 		wp_send_json_success( [ 'report' => $report ] );
 	}
@@ -233,9 +255,29 @@ class WUAR_Admin {
 			wp_send_json_error( [ 'message' => $report->get_error_message() ] );
 		}
 
+		wp_send_json_success( [ 'report' => $report ] );
+	}
+
+	public function ajax_reset_snapshot(): void {
+		check_ajax_referer( 'wuar_nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( [ 'message' => __( '権限がありません。', 'wp-update-auto-report' ) ] );
+		}
+
+		if ( ! $this->tracker->get_snapshot() ) {
+			wp_send_json_error( [ 'message' => __( 'スナップショットが存在しません。', 'wp-update-auto-report' ) ] );
+		}
+
 		$this->tracker->reset_snapshot();
 
-		wp_send_json_success( [ 'report' => $report ] );
+		if ( $this->tracker->get_snapshot() ) {
+			wp_send_json_error( [ 'message' => __( 'スナップショットのリセットに失敗しました。', 'wp-update-auto-report' ) ] );
+		}
+
+		wp_send_json_success( [
+			'message' => __( 'スナップショットをリセットしました。', 'wp-update-auto-report' ),
+		] );
 	}
 
 	private function get_snapshot_label(): string {
