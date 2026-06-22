@@ -40,7 +40,9 @@ class WUAR_AI_Reporter {
 			$template = $this->load_template();
 
 			// {diff_and_notes} プレースホルダーに展開
+			// 行頭のフェンス記号（~~~）を無害化してコードブロック注入を防ぐ
 			$diff_and_notes = $this->build_diff_and_notes( $diff_items, $release_notes );
+			$diff_and_notes = preg_replace( '/^~~~+/m', ' $0', $diff_and_notes );
 			$prompt         = str_replace( '{diff_and_notes}', $diff_and_notes, $template );
 
 			// Connectors API 呼び出し

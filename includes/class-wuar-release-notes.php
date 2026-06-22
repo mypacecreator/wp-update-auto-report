@@ -30,6 +30,11 @@ class WUAR_Release_Notes {
 	const MAX_ITEMS = 20;
 
 	/**
+	 * fetch() 全体の最大実行時間 (秒) — PHP max_execution_time の手前で打ち切る
+	 */
+	const MAX_FETCH_SECONDS = 25;
+
+	/**
 	 * 差分アイテムからリリースノートを取得
 	 *
 	 * @param array $diff_items 差分アイテム配列
@@ -42,9 +47,13 @@ class WUAR_Release_Notes {
 			'Theme'  => [],
 		];
 
-		$count = 0;
+		$count      = 0;
+		$start_time = microtime( true );
 		foreach ( $diff_items as $item ) {
 			if ( $count >= self::MAX_ITEMS ) {
+				break;
+			}
+			if ( ( microtime( true ) - $start_time ) >= self::MAX_FETCH_SECONDS ) {
 				break;
 			}
 			if ( ! is_array( $item ) ) {
@@ -101,18 +110,18 @@ class WUAR_Release_Notes {
 		$cache_key = $this->get_cache_key( $type, $slug, $version );
 		$cached    = get_transient( $cache_key );
 
-		// キャッシュヒット
+		// キャッシュヒット（配列ラップで null との衝突を防ぐ）
 		if ( false !== $cached ) {
-			return '__NOT_FOUND__' === $cached ? null : $cached;
+			return $cached['found'] ? $cached['notes'] : null;
 		}
 
 		// API リクエスト
 		$notes = $this->fetch_from_api( $type, $slug, $version );
 
-		// キャッシュ保存 (失敗時も __NOT_FOUND__ として保存)
+		// キャッシュ保存（found フラグ付き配列で保存）
 		set_transient(
 			$cache_key,
-			null === $notes ? '__NOT_FOUND__' : $notes,
+			[ 'found' => null !== $notes, 'notes' => $notes ],
 			self::CACHE_DURATION
 		);
 
