@@ -2,14 +2,16 @@
 ( function () {
 	'use strict';
 
-	const snapshotBtn  = document.getElementById( 'wuar-snapshot-btn' );
-	const snapshotMsg  = document.getElementById( 'wuar-snapshot-msg' );
-	const generateBtn  = document.getElementById( 'wuar-generate-btn' );
-	const loadingEl    = document.getElementById( 'wuar-loading' );
-	const resultArea   = document.getElementById( 'wuar-result-area' );
-	const resultTA     = document.getElementById( 'wuar-result' );
-	const copyBtn      = document.getElementById( 'wuar-copy-btn' );
-	const downloadBtn  = document.getElementById( 'wuar-download-btn' );
+	const snapshotBtn     = document.getElementById( 'wuar-snapshot-btn' );
+	const snapshotMsg     = document.getElementById( 'wuar-snapshot-msg' );
+	const generateBtn     = document.getElementById( 'wuar-generate-btn' );
+	const loadingEl       = document.getElementById( 'wuar-loading' );
+	const resultArea      = document.getElementById( 'wuar-result-area' );
+	const resultTA        = document.getElementById( 'wuar-result' );
+	const copyBtn         = document.getElementById( 'wuar-copy-btn' );
+	const downloadBtn     = document.getElementById( 'wuar-download-btn' );
+	const resetSnapshotBtn = document.getElementById( 'wuar-reset-snapshot-btn' );
+	const resetMsg        = document.getElementById( 'wuar-reset-msg' );
 
 	// ---- Snapshot --------------------------------------------------------
 
@@ -82,6 +84,35 @@
 			} finally {
 				aiGenerateBtn.disabled = false;
 				loadingEl.hidden = true;
+			}
+		} );
+	}
+
+	// ---- Reset Snapshot --------------------------------------------------
+
+	if ( resetSnapshotBtn ) {
+		resetSnapshotBtn.addEventListener( 'click', async () => {
+			if ( ! confirm( 'スナップショットをリセットしますか？\n\nリセット後は現在の差分情報が失われます。レポートを生成済みであることを確認してください。' ) ) {
+				return;
+			}
+
+			resetSnapshotBtn.disabled = true;
+			resetMsg.hidden = false;
+			resetMsg.textContent = 'リセット中...';
+
+			try {
+				const data = await post( 'wuar_reset_snapshot' );
+				resetMsg.textContent = '✓ ' + data.message;
+
+				// 2秒後にページリロード
+				setTimeout( () => {
+					location.reload();
+				}, 2000 );
+
+			} catch ( err ) {
+				resetMsg.textContent = 'エラー: ' + err.message;
+			} finally {
+				resetSnapshotBtn.disabled = false;
 			}
 		} );
 	}
