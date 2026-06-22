@@ -104,14 +104,13 @@
 				const data = await post( 'wuar_reset_snapshot' );
 				resetMsg.textContent = '✓ ' + data.message;
 
-				// 2秒後にページリロード
+				// Keep button disabled until reload
 				setTimeout( () => {
 					location.reload();
 				}, 2000 );
 
 			} catch ( err ) {
 				resetMsg.textContent = 'エラー: ' + err.message;
-			} finally {
 				resetSnapshotBtn.disabled = false;
 			}
 		} );

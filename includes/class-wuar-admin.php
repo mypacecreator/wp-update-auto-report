@@ -272,6 +272,10 @@ class WUAR_Admin {
 
 		$this->tracker->reset_snapshot();
 
+		if ( $this->tracker->get_snapshot() ) {
+			wp_send_json_error( [ 'message' => __( 'スナップショットのリセットに失敗しました。', 'wp-update-auto-report' ) ] );
+		}
+
 		wp_send_json_success( [
 			'message' => __( 'スナップショットをリセットしました。', 'wp-update-auto-report' ),
 		] );
