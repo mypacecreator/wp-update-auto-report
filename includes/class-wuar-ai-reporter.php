@@ -60,7 +60,7 @@ class WUAR_AI_Reporter {
 
 			return $result;
 
-		} catch ( Exception $e ) {
+		} catch ( \Throwable $e ) {
 			return new WP_Error(
 				'wuar_ai_exception',
 				sprintf(
@@ -125,52 +125,47 @@ TEMPLATE;
 	private function build_diff_and_notes( array $diff_items, array $release_notes ): string {
 		$lines = [];
 
-		foreach ( $diff_items as $type => $items ) {
-			if ( ! is_array( $items ) || empty( $items ) ) {
+		foreach ( $diff_items as $item ) {
+			if ( ! is_array( $item ) ) {
 				continue;
 			}
 
-			foreach ( $items as $item ) {
-				if ( ! is_array( $item ) ) {
-					continue;
-				}
+			$type = $item['type'] ?? '';
+			$name = $item['name'] ?? '';
+			$from = $item['before'] ?? '';
+			$to   = $item['after'] ?? '';
 
-				$name = $item['name'] ?? '';
-				$from = $item['from'] ?? '';
-				$to   = $item['to'] ?? '';
-
-				if ( empty( $name ) || empty( $to ) ) {
-					continue;
-				}
-
-				// ヘッダー行
-				$lines[] = sprintf(
-					'【%s】%s: %s -> %s',
-					$type,
-					$name,
-					$from ?: '(新規)',
-					$to
-				);
-
-				// リリースノート取得
-				$notes = $release_notes[ $type ][ $name ] ?? null;
-
-				if ( null === $notes ) {
-					$lines[] = 'リリースノート: (取得できませんでした)';
-				} else {
-					// 長いリリースノートは最初の10行に制限
-					$note_lines = explode( "\n", $notes );
-					$note_lines = array_slice( $note_lines, 0, 10 );
-					$lines[]    = 'リリースノート:';
-					$lines[]    = implode( "\n", $note_lines );
-
-					if ( count( explode( "\n", $notes ) ) > 10 ) {
-						$lines[] = '(以下略)';
-					}
-				}
-
-				$lines[] = ''; // 空行
+			if ( empty( $type ) || empty( $name ) || empty( $to ) ) {
+				continue;
 			}
+
+			// ヘッダー行
+			$lines[] = sprintf(
+				'【%s】%s: %s -> %s',
+				$type,
+				$name,
+				$from ?: '(新規)',
+				$to
+			);
+
+			// リリースノート取得
+			$notes = $release_notes[ $type ][ $name ] ?? null;
+
+			if ( null === $notes ) {
+				$lines[] = 'リリースノート: (取得できませんでした)';
+			} else {
+				// 長いリリースノートは最初の10行に制限
+				$note_lines = explode( "\n", $notes );
+				$note_lines = array_slice( $note_lines, 0, 10 );
+				$lines[]    = 'リリースノート:';
+				$lines[]    = implode( "\n", $note_lines );
+
+				if ( count( explode( "\n", $notes ) ) > 10 ) {
+					$lines[] = '(以下略)';
+				}
+			}
+
+			$lines[] = ''; // 空行
 		}
 
 		return implode( "\n", $lines );

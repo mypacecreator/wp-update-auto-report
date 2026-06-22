@@ -56,7 +56,6 @@ class WUAR_Admin {
 				'today'         => wp_date( 'Ymd' ),
 				'hasSnapshot'   => $this->tracker->get_snapshot() ? '1' : '0',
 				'snapshotLabel' => $this->get_snapshot_label(),
-				'hasAiSupport'  => function_exists( 'wp_ai_client_prompt' ) ? '1' : '0',
 			]
 		);
 	}
