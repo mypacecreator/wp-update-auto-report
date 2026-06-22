@@ -116,9 +116,9 @@ class WUAR_Version_Tracker {
 
 		$lines[] = '### 作業メモ';
 		$lines[] = '';
-		$lines[] = '**対象サイト:** ' . $site_url;
+		$lines[] = '- **対象サイト:** ' . $site_url;
 		if ( $snapshot ) {
-			$lines[] = '**スナップショット取得日時:** ' . $snapshot['recorded_at'];
+			$lines[] = '- **スナップショット取得日時:** ' . $snapshot['recorded_at'];
 		}
 
 		return implode( "\n", $lines );
