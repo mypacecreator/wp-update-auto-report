@@ -5,7 +5,7 @@
  * Description:       WordPress コア・プラグイン・テーマのアップデート差分を検知し、クライアント提出用の月次作業報告書を自動生成します。
  * Version:           1.0.0
  * Requires at least: 6.0
- * Requires PHP:      7.4
+ * Requires PHP:      8.0
  * Author:            mypacecreator
  * Author URI:        https://github.com/mypacecreator
  * License:           GPL-2.0-or-later
@@ -23,6 +23,8 @@ define( 'WUAR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 require_once WUAR_PLUGIN_DIR . 'includes/class-wuar-version-tracker.php';
 require_once WUAR_PLUGIN_DIR . 'includes/class-wuar-admin.php';
+require_once WUAR_PLUGIN_DIR . 'includes/class-wuar-release-notes.php';
+require_once WUAR_PLUGIN_DIR . 'includes/class-wuar-ai-reporter.php';
 
 final class WP_Update_Auto_Report {
 

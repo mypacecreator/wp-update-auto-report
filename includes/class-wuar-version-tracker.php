@@ -23,7 +23,7 @@ class WUAR_Version_Tracker {
 	}
 
 	public function reset_snapshot(): void {
-		$this->save_snapshot();
+		delete_option( self::OPTION_KEY );
 	}
 
 	public function get_diff_items(): array {
