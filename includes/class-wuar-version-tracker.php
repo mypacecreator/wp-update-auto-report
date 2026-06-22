@@ -89,27 +89,23 @@ class WUAR_Version_Tracker {
 		$lines   = [];
 		$lines[] = '# 月次システム定期アップデート作業報告書';
 		$lines[] = '';
-		$lines[] = '**作業日:** ' . $date;
-		$lines[] = '**対象サイト:** ' . $site_url;
-		if ( $snapshot ) {
-			$lines[] = '**スナップショット取得日時:** ' . $snapshot['recorded_at'];
-		}
+		$lines[] = '## 実施日: ' . $date;
 		$lines[] = '';
 
 		if ( empty( $diff ) ) {
-			$lines[] = '## アップデート内容';
+			$lines[] = '### アップデート内容';
 			$lines[] = '';
-			$lines[] = '今月はコア・プラグイン・テーマの更新はありませんでした。システムは通常稼働中です。';
+			$lines[] = 'コア・プラグイン・テーマの更新はありませんでした。システムは通常稼働中です。';
 			$lines[] = '';
 		} else {
-			$lines[] = '## アップデート内容';
+			$lines[] = '### アップデート内容';
 			$lines[] = '';
 			$lines[] = '| 種別 | 名称 | 更新前 | 更新後 |';
 			$lines[] = '|------|------|--------|--------|';
 			foreach ( $diff as $item ) {
 				$lines[] = sprintf(
 					'| %s | %s | %s | %s |',
-					$this->escape_md_cell( $item['type'] ),
+					$this->escape_md_cell( $this->translate_type( $item['type'] ) ),
 					$this->escape_md_cell( $item['name'] ),
 					$this->escape_md_cell( $item['before'] ),
 					$this->escape_md_cell( $item['after'] )
@@ -118,17 +114,23 @@ class WUAR_Version_Tracker {
 			$lines[] = '';
 		}
 
-		$lines[] = '## 確認事項';
+		$lines[] = '### 作業メモ';
 		$lines[] = '';
-		$lines[] = '- フロント表示: 正常';
-		$lines[] = '- フォーム動作: 正常';
-		$lines[] = '- その他: 異常なし';
-		$lines[] = '';
-		$lines[] = '---';
-		$lines[] = '';
-		$lines[] = '以上、ご確認のほどよろしくお願いいたします。';
+		$lines[] = '**対象サイト:** ' . $site_url;
+		if ( $snapshot ) {
+			$lines[] = '**スナップショット取得日時:** ' . $snapshot['recorded_at'];
+		}
 
 		return implode( "\n", $lines );
+	}
+
+	private function translate_type( string $type ): string {
+		$translations = [
+			'Core'   => '本体',
+			'Plugin' => 'プラグイン',
+			'Theme'  => 'テーマ',
+		];
+		return $translations[ $type ] ?? $type;
 	}
 
 	private function get_current_plugins(): array {
