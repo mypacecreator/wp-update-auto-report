@@ -122,18 +122,10 @@ class WUAR_AI_Settings_Page {
 	 * @return void
 	 */
 	public function render_api_key_field(): void {
-		$api_key = WUAR_Anthropic_Client::get_api_key();
-		$masked  = ! empty( $api_key ) ? '••••••••••••••••' : '';
-
 		echo '<input type="password"
 			name="' . esc_attr( WUAR_Anthropic_Client::OPTION_KEY_API_KEY ) . '"
-			value="' . esc_attr( $masked ) . '"
 			placeholder="sk-ant-..."
 			class="regular-text" />';
-
-		if ( ! empty( $api_key ) ) {
-			echo '<p class="description">' . esc_html__( '(API key is already set. Enter a new one to change it.)', 'wp-update-auto-report' ) . '</p>';
-		}
 	}
 
 	/**
@@ -190,11 +182,6 @@ class WUAR_AI_Settings_Page {
 	 * @return string サニタイズされた値
 	 */
 	public function sanitize_api_key( $value ): string {
-		if ( empty( $value ) || '••••••••••••••••' === $value ) {
-			// 既存キーを保持、またはクリア
-			return WUAR_Anthropic_Client::get_api_key() ?? '';
-		}
-
 		return sanitize_text_field( $value );
 	}
 
