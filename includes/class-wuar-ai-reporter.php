@@ -49,7 +49,14 @@ class WUAR_AI_Reporter {
 			$ai_client = wp_ai_client_prompt( $prompt );
 			$model_id  = get_option( 'wuar_ai_model', 'claude-opus-4-8' );
 			$ai_client = $ai_client->using_model_preference( $model_id );
-			$result    = $ai_client->generate_text_result();
+
+			// WP HTTP API のタイムアウトを延長（デフォルト 30 秒では応答が間に合わない場合がある）
+			add_filter( 'http_request_args', [ $this, 'extend_http_timeout' ], 10, 2 );
+			try {
+				$result = $ai_client->generate_text_result();
+			} finally {
+				remove_filter( 'http_request_args', [ $this, 'extend_http_timeout' ], 10 );
+			}
 
 			if ( is_wp_error( $result ) ) {
 				return new WP_Error(
@@ -167,6 +174,20 @@ class WUAR_AI_Reporter {
 {diff_and_notes}
 ~~~
 TEMPLATE;
+	}
+
+	/**
+	 * Anthropic API へのリクエストのタイムアウトを延長する http_request_args フィルター
+	 *
+	 * @param array  $args リクエスト引数
+	 * @param string $url  リクエスト先 URL
+	 * @return array 変更後のリクエスト引数
+	 */
+	public function extend_http_timeout( array $args, string $url ): array {
+		if ( str_contains( $url, 'api.anthropic.com' ) ) {
+			$args['timeout'] = 120;
+		}
+		return $args;
 	}
 
 	/**
