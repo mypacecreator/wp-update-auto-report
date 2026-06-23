@@ -114,7 +114,7 @@ WordPress 7.0 で導入された **Connectors API** を使い、各アップデ�
 | Claude Sonnet 4.6 | バランス型（環境によりタイムアウトの可能性あり） |
 | Claude Opus 4.8 | 高精度 |
 
-デフォルトモデルや選択肢の追加・変更は、`wp-update-auto-report.php` 内の定数 `WUAR_AI_MODEL_DEFAULT` と `WUAR_AI_MODEL_ALLOWED` を編集してください。
+デフォルトモデルや選択肢の追加・変更は、`wp-update-auto-report.php` 内の定数 `WUAR_AI_MODELS`（モデル ID と表示名の一覧）と `WUAR_AI_MODEL_DEFAULT` を編集してください。
 
 ### プロンプトテンプレートのカスタマイズ
 

@@ -47,19 +47,13 @@ class WUAR_Admin {
 	}
 
 	public function sanitize_ai_model( string $value ): string {
-		return in_array( $value, WUAR_AI_MODEL_ALLOWED, true ) ? $value : WUAR_AI_MODEL_DEFAULT;
+		return array_key_exists( $value, WUAR_AI_MODELS ) ? $value : WUAR_AI_MODEL_DEFAULT;
 	}
 
 	public function render_ai_model_field(): void {
 		$current = get_option( 'wuar_ai_model', WUAR_AI_MODEL_DEFAULT );
-		$models  = [
-			'claude-opus-4-8'            => __( 'Claude Opus 4.8', 'wp-update-auto-report' ),
-			'claude-sonnet-4-6'          => __( 'Claude Sonnet 4.6', 'wp-update-auto-report' ),
-			'claude-sonnet-4-5-20250929' => __( 'Claude Sonnet 4.5', 'wp-update-auto-report' ),
-			'claude-haiku-4-5-20251001'  => __( 'Claude Haiku 4.5', 'wp-update-auto-report' ),
-		];
 		echo '<select name="wuar_ai_model" id="wuar_ai_model">';
-		foreach ( $models as $model_id => $label ) {
+		foreach ( WUAR_AI_MODELS as $model_id => $label ) {
 			printf(
 				'<option value="%s"%s>%s</option>',
 				esc_attr( $model_id ),

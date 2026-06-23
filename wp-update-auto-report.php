@@ -21,14 +21,19 @@ define( 'WUAR_VERSION', '1.0.0' );
 define( 'WUAR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WUAR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
-/** AI モデル設定 — モデル追加・デフォルト変更はここだけ編集する */
-define( 'WUAR_AI_MODEL_DEFAULT', 'claude-haiku-4-5-20251001' );
-define( 'WUAR_AI_MODEL_ALLOWED', [
-	'claude-opus-4-8',
-	'claude-sonnet-4-6',
-	'claude-sonnet-4-5-20250929',
-	'claude-haiku-4-5-20251001',
+/**
+ * AI モデル設定 — モデルの追加・変更・デフォルト変更はここだけ編集する
+ *
+ * WUAR_AI_MODELS: [ モデル ID => 表示ラベル ] の連想配列
+ * WUAR_AI_MODEL_DEFAULT: WUAR_AI_MODELS のいずれかのキーを指定
+ */
+define( 'WUAR_AI_MODELS', [
+	'claude-haiku-4-5-20251001'  => 'Claude Haiku 4.5',
+	'claude-sonnet-4-5-20250929' => 'Claude Sonnet 4.5',
+	'claude-sonnet-4-6'          => 'Claude Sonnet 4.6',
+	'claude-opus-4-8'            => 'Claude Opus 4.8',
 ] );
+define( 'WUAR_AI_MODEL_DEFAULT', 'claude-haiku-4-5-20251001' );
 
 require_once WUAR_PLUGIN_DIR . 'includes/class-wuar-version-tracker.php';
 require_once WUAR_PLUGIN_DIR . 'includes/class-wuar-admin.php';
