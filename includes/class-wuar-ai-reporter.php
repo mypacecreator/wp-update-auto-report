@@ -72,12 +72,22 @@ class WUAR_AI_Reporter {
 				$text = $result->toText();
 				if ( method_exists( $result, 'getModelMetadata' ) ) {
 					$meta = $result->getModelMetadata();
+
+					// デバッグ用：メタデータ構造をログ出力
+					error_log( 'WUAR Model Meta: ' . gettype( $meta ) . ' | ' . wp_json_encode( $meta ) );
+
 					if ( is_string( $meta ) && '' !== $meta ) {
 						$model = $meta;
 					} elseif ( is_object( $meta ) && method_exists( $meta, 'getModel' ) ) {
 						$model = $meta->getModel();
 					} elseif ( is_array( $meta ) && ! empty( $meta['model'] ) ) {
 						$model = $meta['model'];
+					} else {
+						// フォールバック：JSON形式で値を見える化
+						$model_debug = is_array( $meta ) ? wp_json_encode( $meta ) : (
+							is_object( $meta ) ? wp_json_encode( (array) $meta ) : (string) $meta
+						);
+						error_log( 'WUAR Model Meta Debug: ' . $model_debug );
 					}
 				}
 			} elseif ( is_array( $result ) ) {
