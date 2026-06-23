@@ -47,7 +47,8 @@ class WUAR_AI_Reporter {
 
 			// Connectors API 呼び出し（メタデータ付き）
 			$ai_client = wp_ai_client_prompt( $prompt );
-			$ai_client = $ai_client->using_model_preference( 'claude-opus-4-8' );
+			$model_id  = get_option( 'wuar_ai_model', 'claude-opus-4-8' );
+			$ai_client = $ai_client->using_model_preference( $model_id );
 			$result    = $ai_client->generate_text_result();
 
 			if ( is_wp_error( $result ) ) {
