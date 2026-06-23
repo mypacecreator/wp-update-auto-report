@@ -61,24 +61,25 @@ class WUAR_AI_Reporter {
 				);
 			}
 
-			// デバッグ用：結果の詳細情報をログ出力
-			$result_type    = gettype( $result );
-			$result_keys    = 'N/A';
-			$result_methods = 'N/A';
-			if ( is_array( $result ) ) {
-				$result_keys = implode( ', ', array_keys( $result ) );
-			} elseif ( is_object( $result ) ) {
-				$result_keys    = implode( ', ', array_keys( (array) $result ) );
-				$result_methods = implode( ', ', get_class_methods( $result ) );
-			}
-			error_log( sprintf( 'WUAR AI Debug: type=%s | methods=[%s]', $result_type, $result_methods ) );
-
-			// 結果を正規化（文字列・配列・オブジェクトすべて対応）
+			// 結果を正規化してテキストを抽出
 			$text  = null;
 			$model = __( '不明', 'wp-update-auto-report' );
 
 			if ( is_string( $result ) && '' !== $result ) {
 				$text = $result;
+			} elseif ( is_object( $result ) && method_exists( $result, 'toText' ) ) {
+				// WordPress AI Client の GenerativeAiResult DTO
+				$text = $result->toText();
+				if ( method_exists( $result, 'getModelMetadata' ) ) {
+					$meta = $result->getModelMetadata();
+					if ( is_string( $meta ) && '' !== $meta ) {
+						$model = $meta;
+					} elseif ( is_object( $meta ) && method_exists( $meta, 'getModel' ) ) {
+						$model = $meta->getModel();
+					} elseif ( is_array( $meta ) && ! empty( $meta['model'] ) ) {
+						$model = $meta['model'];
+					}
+				}
 			} elseif ( is_array( $result ) ) {
 				$text  = $result['content'] ?? $result['text'] ?? null;
 				$model = $result['model'] ?? $result['model_id'] ?? $model;
@@ -87,15 +88,10 @@ class WUAR_AI_Reporter {
 				$model = $result->model ?? $result->model_id ?? $model;
 			}
 
-			if ( null === $text ) {
+			if ( null === $text || '' === $text ) {
 				return new WP_Error(
 					'wuar_ai_invalid_result',
-					sprintf(
-						/* translators: %1$s: 戻り値の型, %2$s: 利用可能なメソッド */
-						__( 'AI レポート生成の結果形式が予期と異なります。(type: %1$s, methods: %2$s)', 'wp-update-auto-report' ),
-						$result_type,
-						is_object( $result ) ? $result_methods : $result_keys
-					)
+					__( 'AI レポート生成の結果形式が予期と異なります。', 'wp-update-auto-report' )
 				);
 			}
 
