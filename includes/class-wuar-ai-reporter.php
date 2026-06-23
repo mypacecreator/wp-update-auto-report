@@ -47,7 +47,10 @@ class WUAR_AI_Reporter {
 
 			// Connectors API 呼び出し（メタデータ付き）
 			$ai_client = wp_ai_client_prompt( $prompt );
-			$model_id  = get_option( 'wuar_ai_model', WUAR_AI_MODEL_DEFAULT );
+			$model_id = get_option( 'wuar_ai_model', WUAR_AI_MODEL_DEFAULT );
+			if ( ! is_string( $model_id ) || ! array_key_exists( $model_id, WUAR_AI_MODELS ) ) {
+				$model_id = WUAR_AI_MODEL_DEFAULT;
+			}
 			$ai_client = $ai_client->using_model_preference( $model_id );
 
 			// WP HTTP API のタイムアウトを延長（デフォルト 30 秒では応答が間に合わない場合がある）

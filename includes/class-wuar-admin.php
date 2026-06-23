@@ -46,7 +46,10 @@ class WUAR_Admin {
 		);
 	}
 
-	public function sanitize_ai_model( string $value ): string {
+	public function sanitize_ai_model( $value ): string {
+		if ( ! is_string( $value ) ) {
+			return WUAR_AI_MODEL_DEFAULT;
+		}
 		return array_key_exists( $value, WUAR_AI_MODELS ) ? $value : WUAR_AI_MODEL_DEFAULT;
 	}
 
