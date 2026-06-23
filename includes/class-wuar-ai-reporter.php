@@ -45,9 +45,10 @@ class WUAR_AI_Reporter {
 			$diff_and_notes = preg_replace( '/^~~~+/m', ' $0', $diff_and_notes );
 			$prompt         = str_replace( '{diff_and_notes}', $diff_and_notes, $template );
 
-			// Connectors API 呼び出し
+			// Connectors API 呼び出し（メタデータ付き）
 			$ai_client = wp_ai_client_prompt( $prompt );
-			$result    = $ai_client->generate_text();
+			$ai_client = $ai_client->using_model_preference( 'claude-opus-4-8' );
+			$result    = $ai_client->generate_text_result();
 
 			if ( is_wp_error( $result ) ) {
 				return new WP_Error(
@@ -60,7 +61,51 @@ class WUAR_AI_Reporter {
 				);
 			}
 
-			return $result;
+			// 結果を正規化してテキストを抽出
+			$text  = null;
+			$model = __( '不明', 'wp-update-auto-report' );
+
+			if ( is_string( $result ) && '' !== $result ) {
+				$text = $result;
+			} elseif ( is_object( $result ) && method_exists( $result, 'toText' ) ) {
+				// WordPress AI Client の GenerativeAiResult DTO
+				$text = $result->toText();
+				if ( method_exists( $result, 'getModelMetadata' ) ) {
+					$meta = $result->getModelMetadata();
+					if ( is_string( $meta ) && '' !== $meta ) {
+						$model = $meta;
+					} elseif ( is_object( $meta ) ) {
+						if ( method_exists( $meta, 'getName' ) ) {
+							$model = $meta->getName();
+						} elseif ( method_exists( $meta, 'getId' ) ) {
+							$model = $meta->getId();
+						}
+					} elseif ( is_array( $meta ) && ! empty( $meta['name'] ) ) {
+						$model = $meta['name'];
+					} elseif ( is_array( $meta ) && ! empty( $meta['model'] ) ) {
+						$model = $meta['model'];
+					}
+				}
+			} elseif ( is_array( $result ) ) {
+				$text  = $result['content'] ?? $result['text'] ?? null;
+				$model = $result['model'] ?? $result['model_id'] ?? $model;
+			} elseif ( is_object( $result ) ) {
+				$text  = $result->content ?? $result->text ?? null;
+				$model = $result->model ?? $result->model_id ?? $model;
+			}
+
+			if ( null === $text || '' === $text ) {
+				return new WP_Error(
+					'wuar_ai_invalid_result',
+					__( 'AI レポート生成の結果形式が予期と異なります。', 'wp-update-auto-report' )
+				);
+			}
+
+			// メタデータ（使用モデル）を結果に附加
+			return $text . "\n\n---\n\n" . sprintf(
+				__( '**使用モデル:** %s', 'wp-update-auto-report' ),
+				sanitize_text_field( $model )
+			);
 
 		} catch ( \Throwable $e ) {
 			return new WP_Error(
