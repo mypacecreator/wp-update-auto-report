@@ -47,7 +47,7 @@ class WUAR_AI_Reporter {
 
 			// Connectors API 呼び出し（メタデータ付き）
 			$ai_client = wp_ai_client_prompt( $prompt );
-			$model_id  = get_option( 'wuar_ai_model', 'claude-haiku-4-5-20251001' );
+			$model_id  = get_option( 'wuar_ai_model', WUAR_AI_MODEL_DEFAULT );
 			$ai_client = $ai_client->using_model_preference( $model_id );
 
 			// WP HTTP API のタイムアウトを延長（デフォルト 30 秒では応答が間に合わない場合がある）

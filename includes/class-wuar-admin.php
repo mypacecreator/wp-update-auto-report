@@ -26,7 +26,7 @@ class WUAR_Admin {
 			[
 				'type'              => 'string',
 				'sanitize_callback' => [ $this, 'sanitize_ai_model' ],
-				'default'           => 'claude-haiku-4-5-20251001',
+				'default'           => WUAR_AI_MODEL_DEFAULT,
 			]
 		);
 
@@ -47,12 +47,11 @@ class WUAR_Admin {
 	}
 
 	public function sanitize_ai_model( string $value ): string {
-		$allowed = [ 'claude-opus-4-8', 'claude-sonnet-4-6', 'claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001' ];
-		return in_array( $value, $allowed, true ) ? $value : 'claude-opus-4-8';
+		return in_array( $value, WUAR_AI_MODEL_ALLOWED, true ) ? $value : WUAR_AI_MODEL_DEFAULT;
 	}
 
 	public function render_ai_model_field(): void {
-		$current = get_option( 'wuar_ai_model', 'claude-haiku-4-5-20251001' );
+		$current = get_option( 'wuar_ai_model', WUAR_AI_MODEL_DEFAULT );
 		$models  = [
 			'claude-opus-4-8'            => __( 'Claude Opus 4.8', 'wp-update-auto-report' ),
 			'claude-sonnet-4-6'          => __( 'Claude Sonnet 4.6', 'wp-update-auto-report' ),
