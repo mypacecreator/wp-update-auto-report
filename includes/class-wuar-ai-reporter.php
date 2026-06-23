@@ -62,14 +62,16 @@ class WUAR_AI_Reporter {
 			}
 
 			// デバッグ用：結果の詳細情報をログ出力
-			$result_type = gettype( $result );
-			$result_keys = 'N/A';
+			$result_type    = gettype( $result );
+			$result_keys    = 'N/A';
+			$result_methods = 'N/A';
 			if ( is_array( $result ) ) {
 				$result_keys = implode( ', ', array_keys( $result ) );
 			} elseif ( is_object( $result ) ) {
-				$result_keys = implode( ', ', array_keys( (array) $result ) );
+				$result_keys    = implode( ', ', array_keys( (array) $result ) );
+				$result_methods = implode( ', ', get_class_methods( $result ) );
 			}
-			error_log( sprintf( 'WUAR AI Debug: Result type=%s, keys=[%s]', $result_type, $result_keys ) );
+			error_log( sprintf( 'WUAR AI Debug: type=%s | methods=[%s]', $result_type, $result_methods ) );
 
 			// 結果を正規化（文字列・配列・オブジェクトすべて対応）
 			$text  = null;
@@ -89,10 +91,10 @@ class WUAR_AI_Reporter {
 				return new WP_Error(
 					'wuar_ai_invalid_result',
 					sprintf(
-						/* translators: %1$s: 戻り値の型, %2$s: 利用可能なキー */
-						__( 'AI レポート生成の結果形式が予期と異なります。(type: %1$s, keys: %2$s)', 'wp-update-auto-report' ),
+						/* translators: %1$s: 戻り値の型, %2$s: 利用可能なメソッド */
+						__( 'AI レポート生成の結果形式が予期と異なります。(type: %1$s, methods: %2$s)', 'wp-update-auto-report' ),
 						$result_type,
-						$result_keys
+						is_object( $result ) ? $result_methods : $result_keys
 					)
 				);
 			}
