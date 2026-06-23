@@ -101,14 +101,14 @@ WordPress 7.0 で導入された **Connectors API** を使い、各アップデ�
 
 ### 使用モデル
 
-デフォルトでは **Claude Haiku 4.5** を使用します。
+デフォルトでは **Claude Opus 4.8** を使用します。
 
 生成されたレポートの末尾に「**使用モデル:**」として実際に使用されたモデル名が表示されます。
 
 モデルを変更したい場合は、`includes/class-wuar-ai-reporter.php` 内の `using_model_preference()` の引数を変更してください。
 
 ```php
-$ai_client = $ai_client->using_model_preference( 'claude-haiku-4-5' );
+$ai_client = $ai_client->using_model_preference( 'claude-opus-4-8' );
 ```
 
 利用可能なモデルは Connectors API で設定したプロバイダーの仕様に依存します。
