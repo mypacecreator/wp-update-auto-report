@@ -101,17 +101,20 @@ WordPress 7.0 で導入された **Connectors API** を使い、各アップデ�
 
 ### 使用モデル
 
-デフォルトでは **Claude Opus 4.8** を使用します。
+デフォルトでは **Claude Haiku 4.5** を使用します。
 
 生成されたレポートの末尾に「**使用モデル:**」として実際に使用されたモデル名が表示されます。
 
-モデルを変更したい場合は、`includes/class-wuar-ai-reporter.php` 内の `using_model_preference()` の引数を変更してください。
+モデルは管理画面から変更できます。**ツール ＞ WP レポート生成** を開き、ページ下部の「設定 — AI モデル選択」でドロップダウンからモデルを選択して「設定を保存」をクリックしてください。
 
-```php
-$ai_client = $ai_client->using_model_preference( 'claude-opus-4-8' );
-```
+| モデル | 特徴 |
+|--------|------|
+| Claude Haiku 4.5 | 高速・低コスト（デフォルト） |
+| Claude Sonnet 4.5 | バランス型・動作確認済み |
+| Claude Sonnet 4.6 | バランス型（環境によりタイムアウトの可能性あり） |
+| Claude Opus 4.8 | 高精度 |
 
-利用可能なモデルは Connectors API で設定したプロバイダーの仕様に依存します。
+デフォルトモデルや選択肢の追加・変更は、`wp-update-auto-report.php` 内の定数 `WUAR_AI_MODELS`（モデル ID と表示名の一覧）と `WUAR_AI_MODEL_DEFAULT` を編集してください。
 
 ### プロンプトテンプレートのカスタマイズ
 

@@ -11,11 +11,64 @@ class WUAR_Admin {
 		$this->tracker = new WUAR_Version_Tracker();
 
 		add_action( 'admin_menu', [ $this, 'register_menu' ] );
+		add_action( 'admin_init', [ $this, 'register_settings' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
 		add_action( 'wp_ajax_wuar_save_snapshot', [ $this, 'ajax_save_snapshot' ] );
 		add_action( 'wp_ajax_wuar_generate_report', [ $this, 'ajax_generate_report' ] );
 		add_action( 'wp_ajax_wuar_generate_ai_report', [ $this, 'ajax_generate_ai_report' ] );
 		add_action( 'wp_ajax_wuar_reset_snapshot', [ $this, 'ajax_reset_snapshot' ] );
+	}
+
+	public function register_settings(): void {
+		register_setting(
+			'wuar_settings',
+			'wuar_ai_model',
+			[
+				'type'              => 'string',
+				'sanitize_callback' => [ $this, 'sanitize_ai_model' ],
+				'default'           => WUAR_AI_MODEL_DEFAULT,
+			]
+		);
+
+		add_settings_section(
+			'wuar_ai_settings_section',
+			'',
+			'__return_empty_string',
+			'wuar-report'
+		);
+
+		add_settings_field(
+			'wuar_ai_model',
+			__( 'AI モデル', 'wp-update-auto-report' ),
+			[ $this, 'render_ai_model_field' ],
+			'wuar-report',
+			'wuar_ai_settings_section',
+			[ 'label_for' => 'wuar_ai_model' ]
+		);
+	}
+
+	public function sanitize_ai_model( $value ): string {
+		if ( ! is_string( $value ) ) {
+			return WUAR_AI_MODEL_DEFAULT;
+		}
+		return array_key_exists( $value, WUAR_AI_MODELS ) ? $value : WUAR_AI_MODEL_DEFAULT;
+	}
+
+	public function render_ai_model_field(): void {
+		$current = get_option( 'wuar_ai_model', WUAR_AI_MODEL_DEFAULT );
+		if ( ! is_string( $current ) || ! array_key_exists( $current, WUAR_AI_MODELS ) ) {
+			$current = WUAR_AI_MODEL_DEFAULT;
+		}
+		echo '<select name="wuar_ai_model" id="wuar_ai_model">';
+		foreach ( WUAR_AI_MODELS as $model_id => $label ) {
+			printf(
+				'<option value="%s"%s>%s</option>',
+				esc_attr( $model_id ),
+				selected( $current, $model_id, false ),
+				esc_html( $label )
+			);
+		}
+		echo '</select>';
 	}
 
 	public function register_menu(): void {
@@ -185,6 +238,22 @@ class WUAR_Admin {
 					<span id="wuar-reset-msg" class="wuar-inline-msg" hidden></span>
 				<?php endif; ?>
 			</div>
+
+			<?php if ( function_exists( 'wp_ai_client_prompt' ) ) : ?>
+			<hr>
+
+			<div class="wuar-step">
+				<h2><?php esc_html_e( '設定 — AI モデル選択', 'wp-update-auto-report' ); ?></h2>
+				<?php settings_errors(); ?>
+				<form method="post" action="options.php">
+					<?php
+					settings_fields( 'wuar_settings' );
+					do_settings_sections( 'wuar-report' );
+					submit_button( __( '設定を保存', 'wp-update-auto-report' ) );
+					?>
+				</form>
+			</div>
+			<?php endif; ?>
 		</div>
 		<?php
 	}
