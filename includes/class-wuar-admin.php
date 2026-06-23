@@ -47,16 +47,17 @@ class WUAR_Admin {
 	}
 
 	public function sanitize_ai_model( string $value ): string {
-		$allowed = [ 'claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001' ];
+		$allowed = [ 'claude-opus-4-8', 'claude-sonnet-4-6', 'claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001' ];
 		return in_array( $value, $allowed, true ) ? $value : 'claude-opus-4-8';
 	}
 
 	public function render_ai_model_field(): void {
 		$current = get_option( 'wuar_ai_model', 'claude-opus-4-8' );
 		$models  = [
-			'claude-opus-4-8'           => __( 'Claude Opus 4.8（高精度・推奨）', 'wp-update-auto-report' ),
-			'claude-sonnet-4-6'         => __( 'Claude Sonnet 4.6（バランス型）', 'wp-update-auto-report' ),
-			'claude-haiku-4-5-20251001' => __( 'Claude Haiku 4.5（高速・低コスト）', 'wp-update-auto-report' ),
+			'claude-opus-4-8'            => __( 'Claude Opus 4.8（高精度・推奨）', 'wp-update-auto-report' ),
+			'claude-sonnet-4-6'          => __( 'Claude Sonnet 4.6（バランス型・タイムアウトの可能性あり）', 'wp-update-auto-report' ),
+			'claude-sonnet-4-5-20250929' => __( 'Claude Sonnet 4.5（バランス型・動作確認済み）', 'wp-update-auto-report' ),
+			'claude-haiku-4-5-20251001'  => __( 'Claude Haiku 4.5（高速・低コスト）', 'wp-update-auto-report' ),
 		];
 		echo '<select name="wuar_ai_model" id="wuar_ai_model">';
 		foreach ( $models as $model_id => $label ) {
@@ -68,9 +69,6 @@ class WUAR_Admin {
 			);
 		}
 		echo '</select>';
-		echo '<p class="description">' .
-			esc_html__( '※ Sonnet 4.6 は現在タイムアウトが発生する場合があります（API 側の問題のため様子見中）。', 'wp-update-auto-report' ) .
-			'</p>';
 	}
 
 	public function register_menu(): void {
