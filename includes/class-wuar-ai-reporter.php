@@ -187,7 +187,7 @@ TEMPLATE;
 	 * @return array 変更後のリクエスト引数
 	 */
 	public function extend_http_timeout( array $args, string $url ): array {
-		if ( str_contains( $url, 'api.anthropic.com' ) ) {
+		if ( 'api.anthropic.com' === parse_url( $url, PHP_URL_HOST ) ) {
 			$args['timeout'] = max( 120, (int) ( $args['timeout'] ?? 0 ) );
 		}
 		return $args;
