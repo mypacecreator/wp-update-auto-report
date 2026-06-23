@@ -99,6 +99,20 @@ WordPress 7.0 で導入された **Connectors API** を使い、各アップデ�
    - Connectors API（`wp_ai_client_prompt`）で非技術者向けレポートを生成
    - セキュリティ・安定性・機能面の改善を簡潔に説明
 
+### 使用モデル
+
+デフォルトでは **Claude Haiku 4.5** を使用します。
+
+生成されたレポートの末尾に「**使用モデル:**」として実際に使用されたモデル名が表示されます。
+
+モデルを変更したい場合は、`includes/class-wuar-ai-reporter.php` 内の `using_model_preference()` の引数を変更してください。
+
+```php
+$ai_client = $ai_client->using_model_preference( 'claude-haiku-4-5' );
+```
+
+利用可能なモデルは Connectors API で設定したプロバイダーの仕様に依存します。
+
 ### プロンプトテンプレートのカスタマイズ
 
 運用者は `templates/prompt-ai-report.md` を編集してAIへの指示内容をカスタマイズできます。

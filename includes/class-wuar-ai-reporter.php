@@ -47,7 +47,7 @@ class WUAR_AI_Reporter {
 
 			// Connectors API 呼び出し（メタデータ付き）
 			$ai_client = wp_ai_client_prompt( $prompt );
-			$ai_client = $ai_client->using_model_preference( 'claude-opus-4-8' );
+			$ai_client = $ai_client->using_model_preference( 'claude-haiku-4-5' );
 			$result    = $ai_client->generate_text_result();
 
 			if ( is_wp_error( $result ) ) {
@@ -61,22 +61,28 @@ class WUAR_AI_Reporter {
 				);
 			}
 
-			// 結果を正規化（配列またはオブジェクト両対応）
+			// 結果を正規化（文字列・配列・オブジェクトすべて対応）
 			$text  = null;
 			$model = __( '不明', 'wp-update-auto-report' );
 
-			if ( is_array( $result ) ) {
-				$text  = $result['content'] ?? null;
-				$model = $result['model'] ?? $model;
+			if ( is_string( $result ) && '' !== $result ) {
+				$text = $result;
+			} elseif ( is_array( $result ) ) {
+				$text  = $result['content'] ?? $result['text'] ?? null;
+				$model = $result['model'] ?? $result['model_id'] ?? $model;
 			} elseif ( is_object( $result ) ) {
-				$text  = $result->content ?? null;
-				$model = $result->model ?? $model;
+				$text  = $result->content ?? $result->text ?? null;
+				$model = $result->model ?? $result->model_id ?? $model;
 			}
 
 			if ( null === $text ) {
 				return new WP_Error(
 					'wuar_ai_invalid_result',
-					__( 'AI レポート生成の結果形式が予期と異なります。', 'wp-update-auto-report' )
+					sprintf(
+						/* translators: %s: 戻り値の型 */
+						__( 'AI レポート生成の結果形式が予期と異なります。(type: %s)', 'wp-update-auto-report' ),
+						gettype( $result )
+					)
 				);
 			}
 
