@@ -42,7 +42,8 @@ class WUAR_Admin {
 			__( 'AI モデル', 'wp-update-auto-report' ),
 			[ $this, 'render_ai_model_field' ],
 			'wuar-report',
-			'wuar_ai_settings_section'
+			'wuar_ai_settings_section',
+			[ 'label_for' => 'wuar_ai_model' ]
 		);
 	}
 
@@ -243,7 +244,7 @@ class WUAR_Admin {
 
 			<div class="wuar-step">
 				<h2><?php esc_html_e( '設定 — AI モデル選択', 'wp-update-auto-report' ); ?></h2>
-				<?php settings_errors( 'wuar_settings' ); ?>
+				<?php settings_errors(); ?>
 				<form method="post" action="options.php">
 					<?php
 					settings_fields( 'wuar_settings' );
