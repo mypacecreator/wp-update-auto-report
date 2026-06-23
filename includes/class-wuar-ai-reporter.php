@@ -61,6 +61,16 @@ class WUAR_AI_Reporter {
 				);
 			}
 
+			// デバッグ用：結果の詳細情報をログ出力
+			$result_type = gettype( $result );
+			$result_keys = 'N/A';
+			if ( is_array( $result ) ) {
+				$result_keys = implode( ', ', array_keys( $result ) );
+			} elseif ( is_object( $result ) ) {
+				$result_keys = implode( ', ', array_keys( (array) $result ) );
+			}
+			error_log( sprintf( 'WUAR AI Debug: Result type=%s, keys=[%s]', $result_type, $result_keys ) );
+
 			// 結果を正規化（文字列・配列・オブジェクトすべて対応）
 			$text  = null;
 			$model = __( '不明', 'wp-update-auto-report' );
@@ -79,9 +89,10 @@ class WUAR_AI_Reporter {
 				return new WP_Error(
 					'wuar_ai_invalid_result',
 					sprintf(
-						/* translators: %s: 戻り値の型 */
-						__( 'AI レポート生成の結果形式が予期と異なります。(type: %s)', 'wp-update-auto-report' ),
-						gettype( $result )
+						/* translators: %1$s: 戻り値の型, %2$s: 利用可能なキー */
+						__( 'AI レポート生成の結果形式が予期と異なります。(type: %1$s, keys: %2$s)', 'wp-update-auto-report' ),
+						$result_type,
+						$result_keys
 					)
 				);
 			}
