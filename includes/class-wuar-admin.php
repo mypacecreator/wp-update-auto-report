@@ -26,7 +26,7 @@ class WUAR_Admin {
 			[
 				'type'              => 'string',
 				'sanitize_callback' => [ $this, 'sanitize_ai_model' ],
-				'default'           => 'claude-opus-4-8',
+				'default'           => 'claude-haiku-4-5-20251001',
 			]
 		);
 
@@ -52,12 +52,12 @@ class WUAR_Admin {
 	}
 
 	public function render_ai_model_field(): void {
-		$current = get_option( 'wuar_ai_model', 'claude-opus-4-8' );
+		$current = get_option( 'wuar_ai_model', 'claude-haiku-4-5-20251001' );
 		$models  = [
-			'claude-opus-4-8'            => __( 'Claude Opus 4.8（高精度・推奨）', 'wp-update-auto-report' ),
-			'claude-sonnet-4-6'          => __( 'Claude Sonnet 4.6（バランス型・タイムアウトの可能性あり）', 'wp-update-auto-report' ),
-			'claude-sonnet-4-5-20250929' => __( 'Claude Sonnet 4.5（バランス型・動作確認済み）', 'wp-update-auto-report' ),
-			'claude-haiku-4-5-20251001'  => __( 'Claude Haiku 4.5（高速・低コスト）', 'wp-update-auto-report' ),
+			'claude-opus-4-8'            => __( 'Claude Opus 4.8', 'wp-update-auto-report' ),
+			'claude-sonnet-4-6'          => __( 'Claude Sonnet 4.6', 'wp-update-auto-report' ),
+			'claude-sonnet-4-5-20250929' => __( 'Claude Sonnet 4.5', 'wp-update-auto-report' ),
+			'claude-haiku-4-5-20251001'  => __( 'Claude Haiku 4.5', 'wp-update-auto-report' ),
 		];
 		echo '<select name="wuar_ai_model" id="wuar_ai_model">';
 		foreach ( $models as $model_id => $label ) {
