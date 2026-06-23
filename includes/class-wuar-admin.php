@@ -55,6 +55,9 @@ class WUAR_Admin {
 
 	public function render_ai_model_field(): void {
 		$current = get_option( 'wuar_ai_model', WUAR_AI_MODEL_DEFAULT );
+		if ( ! is_string( $current ) || ! array_key_exists( $current, WUAR_AI_MODELS ) ) {
+			$current = WUAR_AI_MODEL_DEFAULT;
+		}
 		echo '<select name="wuar_ai_model" id="wuar_ai_model">';
 		foreach ( WUAR_AI_MODELS as $model_id => $label ) {
 			printf(
@@ -240,6 +243,7 @@ class WUAR_Admin {
 
 			<div class="wuar-step">
 				<h2><?php esc_html_e( '設定 — AI モデル選択', 'wp-update-auto-report' ); ?></h2>
+				<?php settings_errors( 'wuar_settings' ); ?>
 				<form method="post" action="options.php">
 					<?php
 					settings_fields( 'wuar_settings' );

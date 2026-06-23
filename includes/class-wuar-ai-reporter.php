@@ -188,7 +188,7 @@ TEMPLATE;
 	 */
 	public function extend_http_timeout( array $args, string $url ): array {
 		if ( str_contains( $url, 'api.anthropic.com' ) ) {
-			$args['timeout'] = 120;
+			$args['timeout'] = max( 120, (int) ( $args['timeout'] ?? 0 ) );
 		}
 		return $args;
 	}
