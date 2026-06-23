@@ -111,7 +111,7 @@ class WUAR_Release_Notes {
 		$cached    = get_transient( $cache_key );
 
 		// キャッシュヒット（配列ラップで null との衝突を防ぐ）
-		if ( false !== $cached ) {
+		if ( false !== $cached && is_array( $cached ) ) {
 			return $cached['found'] ? $cached['notes'] : null;
 		}
 
