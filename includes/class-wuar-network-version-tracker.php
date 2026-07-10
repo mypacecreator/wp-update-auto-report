@@ -3,104 +3,95 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * ネットワーク全体で1つのスナップショット・レポートを扱うトラッカー。
+ *
+ * プラグイン・テーマ・コアの実体ファイルはマルチサイトのネットワーク全体で
+ * 共有されているため（サイトごとに異なるのは「有効化しているか」だけ）、
+ * switch_to_blog() によるサイト横断は不要。ネットワーク管理画面のプラグイン／
+ * テーマ一覧と同じ「インストール済み全件（有効・無効問わず）」を対象にする。
+ */
 class WUAR_Network_Version_Tracker {
 
-	/**
-	 * レポート対象サイトを列挙する（アーカイブ・スパム・削除済みサイトは除外）。
-	 *
-	 * @return WP_Site[]
-	 */
-	public function get_target_sites(): array {
-		return get_sites( [
-			'archived' => 0,
-			'spam'     => 0,
-			'deleted'  => 0,
-		] );
-	}
+	const OPTION_KEY = 'wuar_network_version_snapshot';
 
-	public function save_snapshot_all_sites(): void {
-		foreach ( $this->get_target_sites() as $site ) {
-			switch_to_blog( (int) $site->blog_id );
-			try {
-				( new WUAR_Version_Tracker() )->save_snapshot();
-			} finally {
-				restore_current_blog();
-			}
-		}
-	}
-
-	public function reset_snapshot_all_sites(): void {
-		foreach ( $this->get_target_sites() as $site ) {
-			switch_to_blog( (int) $site->blog_id );
-			try {
-				( new WUAR_Version_Tracker() )->reset_snapshot();
-			} finally {
-				restore_current_blog();
-			}
-		}
-	}
-
-	/**
-	 * 全サイトのスナップショット取得状況を集計する。
-	 *
-	 * @return array{total_sites:int,snapshot_count:int,latest:?string}
-	 */
-	public function get_snapshot_status(): array {
-		$sites          = $this->get_target_sites();
-		$snapshot_count = 0;
-		$latest         = null;
-
-		foreach ( $sites as $site ) {
-			switch_to_blog( (int) $site->blog_id );
-			try {
-				$snapshot = ( new WUAR_Version_Tracker() )->get_snapshot();
-				if ( $snapshot ) {
-					$snapshot_count++;
-					if ( null === $latest || $snapshot['recorded_at'] > $latest ) {
-						$latest = $snapshot['recorded_at'];
-					}
-				}
-			} finally {
-				restore_current_blog();
-			}
-		}
-
-		return [
-			'total_sites'    => count( $sites ),
-			'snapshot_count' => $snapshot_count,
-			'latest'         => $latest,
+	public function save_snapshot(): void {
+		$snapshot = [
+			'recorded_at' => current_time( 'mysql' ),
+			'core'        => get_bloginfo( 'version' ),
+			'plugins'     => $this->get_current_plugins(),
+			'themes'      => $this->get_current_themes(),
 		];
+		update_site_option( self::OPTION_KEY, $snapshot );
 	}
 
-	/**
-	 * 全サイトを横断した差分アイテムを取得する。各アイテムに対象サイト名を付与する。
-	 *
-	 * @return array
-	 */
-	public function get_diff_items_all_sites(): array {
+	public function get_snapshot(): array|false {
+		$snapshot = get_site_option( self::OPTION_KEY, false );
+		return is_array( $snapshot ) ? $snapshot : false;
+	}
+
+	public function reset_snapshot(): void {
+		delete_site_option( self::OPTION_KEY );
+	}
+
+	public function get_diff_items(): array {
+		$snapshot = $this->get_snapshot();
+		if ( ! $snapshot ) {
+			return [];
+		}
+
 		$diff = [];
 
-		foreach ( $this->get_target_sites() as $site ) {
-			switch_to_blog( (int) $site->blog_id );
-			try {
-				$site_name  = get_bloginfo( 'name' );
-				$site_items = ( new WUAR_Version_Tracker() )->get_diff_items();
-				foreach ( $site_items as $item ) {
-					$item['site'] = $site_name;
-					$diff[]       = $item;
-				}
-			} finally {
-				restore_current_blog();
+		// Core
+		$current_core = get_bloginfo( 'version' );
+		if ( version_compare( $snapshot['core'], $current_core, '!=' ) ) {
+			$diff[] = [
+				'type'   => 'Core',
+				'name'   => 'WordPress',
+				'before' => $snapshot['core'],
+				'after'  => $current_core,
+			];
+		}
+
+		// Plugins
+		$current_plugins  = $this->get_current_plugins();
+		$snapshot_plugins = $snapshot['plugins'] ?? [];
+
+		foreach ( $current_plugins as $file => $data ) {
+			$old_version = $snapshot_plugins[ $file ]['version'] ?? null;
+			if ( null !== $old_version && version_compare( $old_version, $data['version'], '!=' ) ) {
+				$diff[] = [
+					'type'   => 'Plugin',
+					'name'   => $data['name'],
+					'before' => $old_version,
+					'after'  => $data['version'],
+				];
+			}
+		}
+
+		// Themes
+		$current_themes  = $this->get_current_themes();
+		$snapshot_themes = $snapshot['themes'] ?? [];
+
+		foreach ( $current_themes as $slug => $data ) {
+			$old_version = $snapshot_themes[ $slug ]['version'] ?? null;
+			if ( null !== $old_version && version_compare( $old_version, $data['version'], '!=' ) ) {
+				$diff[] = [
+					'type'   => 'Theme',
+					'name'   => $data['name'],
+					'before' => $old_version,
+					'after'  => $data['version'],
+				];
 			}
 		}
 
 		return $diff;
 	}
 
-	public function generate_fixed_report_all_sites(): string {
-		$diff   = $this->get_diff_items_all_sites();
-		$status = $this->get_snapshot_status();
-		$date   = wp_date( 'Y年n月j日' );
+	public function generate_fixed_report(): string {
+		$diff     = $this->get_diff_items();
+		$snapshot = $this->get_snapshot();
+		$date     = wp_date( 'Y年n月j日' );
 
 		$lines   = [];
 		$lines[] = '# 月次システム定期アップデート作業報告書（ネットワーク全体）';
@@ -116,12 +107,11 @@ class WUAR_Network_Version_Tracker {
 		} else {
 			$lines[] = '### アップデート内容';
 			$lines[] = '';
-			$lines[] = '| 対象サイト | 種別 | 名称 | 更新前 | 更新後 |';
-			$lines[] = '|------------|------|------|--------|--------|';
+			$lines[] = '| 種別 | 名称 | 更新前 | 更新後 |';
+			$lines[] = '|------|------|--------|--------|';
 			foreach ( $diff as $item ) {
 				$lines[] = sprintf(
-					'| %s | %s | %s | %s | %s |',
-					$this->escape_md_cell( $item['site'] ?? '' ),
+					'| %s | %s | %s | %s |',
 					$this->escape_md_cell( $this->translate_type( $item['type'] ) ),
 					$this->escape_md_cell( $item['name'] ),
 					$this->escape_md_cell( $item['before'] ),
@@ -133,9 +123,9 @@ class WUAR_Network_Version_Tracker {
 
 		$lines[] = '### 作業メモ';
 		$lines[] = '';
-		$lines[] = sprintf( '- **対象サイト数:** %d', $status['total_sites'] );
-		if ( $status['latest'] ) {
-			$lines[] = '- **スナップショット取得日時（最終）:** ' . $status['latest'];
+		$lines[] = '- **対象:** ネットワーク全体（インストール済み全プラグイン・全テーマ）';
+		if ( $snapshot ) {
+			$lines[] = '- **スナップショット取得日時:** ' . $snapshot['recorded_at'];
 		}
 
 		return implode( "\n", $lines );
@@ -148,6 +138,42 @@ class WUAR_Network_Version_Tracker {
 			'Theme'  => 'テーマ',
 		];
 		return $translations[ $type ] ?? $type;
+	}
+
+	/**
+	 * インストール済み全プラグインを対象にする（有効・無効問わず）。
+	 * ネットワーク管理画面の「プラグイン」一覧と同じ対象範囲。
+	 */
+	private function get_current_plugins(): array {
+		if ( ! function_exists( 'get_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		$all_plugins = get_plugins();
+		$result      = [];
+
+		foreach ( $all_plugins as $file => $data ) {
+			$result[ $file ] = [
+				'name'    => $data['Name'],
+				'version' => $data['Version'],
+			];
+		}
+
+		return $result;
+	}
+
+	private function get_current_themes(): array {
+		$themes = wp_get_themes();
+		$result = [];
+
+		foreach ( $themes as $slug => $theme ) {
+			$result[ $slug ] = [
+				'name'    => $theme->get( 'Name' ),
+				'version' => $theme->get( 'Version' ),
+			];
+		}
+
+		return $result;
 	}
 
 	private function escape_md_cell( string $text ): string {

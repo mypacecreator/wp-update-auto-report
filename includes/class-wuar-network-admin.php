@@ -49,8 +49,6 @@ class WUAR_Network_Admin {
 			true
 		);
 
-		$status = $this->tracker->get_snapshot_status();
-
 		wp_localize_script(
 			'wuar-network-admin',
 			'wuarNetworkData',
@@ -58,8 +56,8 @@ class WUAR_Network_Admin {
 				'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
 				'nonce'         => wp_create_nonce( 'wuar_network_nonce' ),
 				'today'         => wp_date( 'Ymd' ),
-				'hasSnapshot'   => $status['snapshot_count'] > 0 ? '1' : '0',
-				'snapshotLabel' => $this->get_snapshot_label( $status ),
+				'hasSnapshot'   => $this->tracker->get_snapshot() ? '1' : '0',
+				'snapshotLabel' => $this->get_snapshot_label(),
 			]
 		);
 	}
@@ -69,22 +67,22 @@ class WUAR_Network_Admin {
 			return;
 		}
 
-		$status       = $this->tracker->get_snapshot_status();
-		$has_snapshot = $status['snapshot_count'] > 0;
-		$diff_items   = $has_snapshot ? $this->tracker->get_diff_items_all_sites() : [];
+		$snapshot     = $this->tracker->get_snapshot();
+		$has_snapshot = (bool) $snapshot;
+		$diff_items   = $has_snapshot ? $this->tracker->get_diff_items() : [];
 		?>
 		<div class="wrap wuar-wrap">
 			<h1><?php esc_html_e( 'WP レポート生成（ネットワーク全体）', 'wp-update-auto-report' ); ?></h1>
-			<p><?php esc_html_e( 'ネットワーク内の全サイトを横断して、プラグイン・テーマ・コアのアップデート差分をまとめてレポートします。', 'wp-update-auto-report' ); ?></p>
+			<p><?php esc_html_e( 'ネットワークにインストールされている全プラグイン・全テーマ（有効・無効問わず）を対象に、コアも含めたアップデート差分をまとめてレポートします。', 'wp-update-auto-report' ); ?></p>
 
 			<div class="wuar-step">
 				<h2><?php esc_html_e( 'STEP 1 — アップデート前にスナップショットを取得', 'wp-update-auto-report' ); ?></h2>
-				<p><?php esc_html_e( 'アップデート作業を始める前に、ネットワーク内の全サイトの現在のバージョン情報を記録してください。', 'wp-update-auto-report' ); ?></p>
+				<p><?php esc_html_e( 'アップデート作業を始める前に、現在のバージョン情報を記録してください。', 'wp-update-auto-report' ); ?></p>
 
 				<p class="wuar-snapshot-status">
 					<?php if ( $has_snapshot ) : ?>
 						<span class="dashicons dashicons-yes-alt" style="color:#46b450;vertical-align:middle;"></span>
-						<?php echo esc_html( $this->get_snapshot_label( $status ) ); ?>
+						<?php echo esc_html( $this->get_snapshot_label() ); ?>
 					<?php else : ?>
 						<span class="dashicons dashicons-warning" style="color:#ffb900;vertical-align:middle;"></span>
 						<?php esc_html_e( 'スナップショット未取得', 'wp-update-auto-report' ); ?>
@@ -92,7 +90,7 @@ class WUAR_Network_Admin {
 				</p>
 
 				<button id="wuar-snapshot-btn" class="button">
-					<?php esc_html_e( '全サイトの現在の状態をスナップショット', 'wp-update-auto-report' ); ?>
+					<?php esc_html_e( '現在の状態をスナップショット', 'wp-update-auto-report' ); ?>
 				</button>
 				<span id="wuar-snapshot-msg" class="wuar-inline-msg" hidden></span>
 			</div>
@@ -115,8 +113,7 @@ class WUAR_Network_Admin {
 					} else {
 						foreach ( $diff_items as $item ) {
 							printf(
-								"【%s】%s: %s: %s -> %s\n",
-								esc_html( $item['site'] ?? '' ),
+								"【%s】%s: %s -> %s\n",
 								esc_html( $item['type'] ),
 								esc_html( $item['name'] ),
 								esc_html( $item['before'] ),
@@ -174,7 +171,7 @@ class WUAR_Network_Admin {
 
 			<div class="wuar-step">
 				<h2><?php esc_html_e( 'STEP 3 — レポート確定（スナップショットをリセット）', 'wp-update-auto-report' ); ?></h2>
-				<p><?php esc_html_e( 'レポートを確認し、作業が完了したら全サイトのスナップショットをリセットしてください。次回のアップデート差分検出の準備が整います。', 'wp-update-auto-report' ); ?></p>
+				<p><?php esc_html_e( 'レポートを確認し、作業が完了したらスナップショットをリセットしてください。次回のアップデート差分検出の準備が整います。', 'wp-update-auto-report' ); ?></p>
 
 				<?php if ( ! $has_snapshot ) : ?>
 					<div class="notice notice-info inline">
@@ -185,7 +182,7 @@ class WUAR_Network_Admin {
 						id="wuar-reset-snapshot-btn"
 						class="button button-secondary"
 					>
-						<?php esc_html_e( '全サイトのスナップショットをリセット', 'wp-update-auto-report' ); ?>
+						<?php esc_html_e( 'スナップショットをリセット', 'wp-update-auto-report' ); ?>
 					</button>
 					<span id="wuar-reset-msg" class="wuar-inline-msg" hidden></span>
 				<?php endif; ?>
@@ -201,15 +198,16 @@ class WUAR_Network_Admin {
 			wp_send_json_error( [ 'message' => __( '権限がありません。', 'wp-update-auto-report' ) ] );
 		}
 
-		$this->tracker->save_snapshot_all_sites();
-		$status = $this->tracker->get_snapshot_status();
+		$this->tracker->save_snapshot();
+		$snapshot = $this->tracker->get_snapshot();
 
-		if ( 0 === $status['snapshot_count'] ) {
+		if ( ! $snapshot ) {
 			wp_send_json_error( [ 'message' => __( 'スナップショットの保存に失敗しました。', 'wp-update-auto-report' ) ] );
 		}
 
 		wp_send_json_success( [
-			'label' => $this->get_snapshot_label( $status ),
+			'recorded_at' => $snapshot['recorded_at'],
+			'label'       => $this->get_snapshot_label(),
 		] );
 	}
 
@@ -220,12 +218,11 @@ class WUAR_Network_Admin {
 			wp_send_json_error( [ 'message' => __( '権限がありません。', 'wp-update-auto-report' ) ] );
 		}
 
-		$status = $this->tracker->get_snapshot_status();
-		if ( 0 === $status['snapshot_count'] ) {
+		if ( ! $this->tracker->get_snapshot() ) {
 			wp_send_json_error( [ 'message' => __( 'スナップショットが存在しません。STEP 1 でスナップショットを取得してください。', 'wp-update-auto-report' ) ] );
 		}
 
-		$report = $this->tracker->generate_fixed_report_all_sites();
+		$report = $this->tracker->generate_fixed_report();
 
 		wp_send_json_success( [ 'report' => $report ] );
 	}
@@ -241,12 +238,11 @@ class WUAR_Network_Admin {
 			wp_send_json_error( [ 'message' => __( 'WordPress 7.0 以上が必要です。', 'wp-update-auto-report' ) ] );
 		}
 
-		$status = $this->tracker->get_snapshot_status();
-		if ( 0 === $status['snapshot_count'] ) {
+		if ( ! $this->tracker->get_snapshot() ) {
 			wp_send_json_error( [ 'message' => __( 'スナップショットが存在しません。STEP 1 でスナップショットを取得してください。', 'wp-update-auto-report' ) ] );
 		}
 
-		$diff_items = $this->tracker->get_diff_items_all_sites();
+		$diff_items = $this->tracker->get_diff_items();
 		if ( empty( $diff_items ) ) {
 			wp_send_json_error( [ 'message' => __( 'アップデートがありません。', 'wp-update-auto-report' ) ] );
 		}
@@ -271,15 +267,13 @@ class WUAR_Network_Admin {
 			wp_send_json_error( [ 'message' => __( '権限がありません。', 'wp-update-auto-report' ) ] );
 		}
 
-		$status = $this->tracker->get_snapshot_status();
-		if ( 0 === $status['snapshot_count'] ) {
+		if ( ! $this->tracker->get_snapshot() ) {
 			wp_send_json_error( [ 'message' => __( 'スナップショットが存在しません。', 'wp-update-auto-report' ) ] );
 		}
 
-		$this->tracker->reset_snapshot_all_sites();
+		$this->tracker->reset_snapshot();
 
-		$after = $this->tracker->get_snapshot_status();
-		if ( $after['snapshot_count'] > 0 ) {
+		if ( $this->tracker->get_snapshot() ) {
 			wp_send_json_error( [ 'message' => __( 'スナップショットのリセットに失敗しました。', 'wp-update-auto-report' ) ] );
 		}
 
@@ -288,16 +282,15 @@ class WUAR_Network_Admin {
 		] );
 	}
 
-	private function get_snapshot_label( array $status ): string {
-		if ( 0 === $status['snapshot_count'] ) {
+	private function get_snapshot_label(): string {
+		$snapshot = $this->tracker->get_snapshot();
+		if ( ! $snapshot ) {
 			return '';
 		}
 		return sprintf(
-			/* translators: 1: スナップショット取得済みサイト数 2: 対象サイト総数 3: 最終取得日時 */
-			__( 'スナップショット取得済み（%1$d/%2$d サイト、最終: %3$s）', 'wp-update-auto-report' ),
-			$status['snapshot_count'],
-			$status['total_sites'],
-			$status['latest'] ?? '-'
+			/* translators: %s: datetime string */
+			__( 'スナップショット取得済み（%s）', 'wp-update-auto-report' ),
+			$snapshot['recorded_at']
 		);
 	}
 }
