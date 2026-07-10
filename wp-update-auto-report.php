@@ -56,11 +56,37 @@ final class WP_Update_Auto_Report {
 	private function __construct() {
 		load_plugin_textdomain( 'wp-update-auto-report', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 
+		// 通常プラグインとして導入されている場合のみ判定対象（must-use プラグインには有効化の概念が無い）。
+		if ( is_multisite() && is_admin() && ! $this->is_mu_plugin() ) {
+			add_action( 'admin_notices', [ $this, 'maybe_render_network_activation_notice' ] );
+		}
+
 		if ( is_multisite() ) {
 			new WUAR_Network_Admin();
 		} else {
 			new WUAR_Admin();
 		}
+	}
+
+	private function is_mu_plugin(): bool {
+		return defined( 'WPMU_PLUGIN_DIR' ) && 0 === strpos( WUAR_PLUGIN_DIR, trailingslashit( WPMU_PLUGIN_DIR ) );
+	}
+
+	public function maybe_render_network_activation_notice(): void {
+		if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		if ( is_plugin_active_for_network( plugin_basename( __FILE__ ) ) ) {
+			return;
+		}
+		?>
+		<div class="notice notice-warning">
+			<p>
+				<?php esc_html_e( 'WP Update Auto Report はマルチサイト環境では「ネットワーク管理 ＞ プラグイン」からネットワーク全体で有効化してください。個別サイトでの有効化のみでは、レポート機能を利用できません。', 'wp-update-auto-report' ); ?>
+			</p>
+		</div>
+		<?php
 	}
 }
 
