@@ -65,7 +65,7 @@ class WUAR_Network_Admin {
 
 	public function render_page(): void {
 		if ( ! current_user_can( 'manage_network' ) ) {
-			return;
+			wp_die( esc_html__( '権限がありません。', 'wp-update-auto-report' ) );
 		}
 
 		$snapshot     = $this->tracker->get_snapshot();
