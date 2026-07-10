@@ -22,11 +22,12 @@ class WUAR_AI_Reporter {
 	/**
 	 * AI レポートを生成
 	 *
-	 * @param array $diff_items 差分アイテム配列
-	 * @param array $release_notes リリースノート配列
+	 * @param array       $diff_items 差分アイテム配列
+	 * @param array       $release_notes リリースノート配列
+	 * @param string|null $model_id 使用するモデルID。null の場合は `wuar_ai_model` オプションから取得する
 	 * @return string|WP_Error 生成されたレポート、またはエラー
 	 */
-	public function generate( array $diff_items, array $release_notes ) {
+	public function generate( array $diff_items, array $release_notes, ?string $model_id = null ) {
 		// WP 7.0 チェック
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
 			return new WP_Error(
@@ -47,7 +48,9 @@ class WUAR_AI_Reporter {
 
 			// Connectors API 呼び出し（メタデータ付き）
 			$ai_client = wp_ai_client_prompt( $prompt );
-			$model_id = get_option( 'wuar_ai_model', WUAR_AI_MODEL_DEFAULT );
+			if ( null === $model_id || ! array_key_exists( $model_id, WUAR_AI_MODELS ) ) {
+				$model_id = get_option( 'wuar_ai_model', WUAR_AI_MODEL_DEFAULT );
+			}
 			if ( ! is_string( $model_id ) || ! array_key_exists( $model_id, WUAR_AI_MODELS ) ) {
 				$model_id = WUAR_AI_MODEL_DEFAULT;
 			}

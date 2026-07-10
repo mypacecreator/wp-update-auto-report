@@ -227,14 +227,14 @@ class WUAR_Network_Admin {
 		if ( ! array_key_exists( $model_id, WUAR_AI_MODELS ) ) {
 			$model_id = WUAR_AI_MODEL_DEFAULT;
 		}
-		update_option( 'wuar_ai_model', $model_id );
+		update_site_option( 'wuar_ai_model', $model_id );
 
 		wp_safe_redirect( add_query_arg( 'updated', 'true', network_admin_url( 'settings.php?page=wuar-network-report' ) ) );
 		exit;
 	}
 
 	private function get_current_ai_model(): string {
-		$current = get_option( 'wuar_ai_model', WUAR_AI_MODEL_DEFAULT );
+		$current = get_site_option( 'wuar_ai_model', WUAR_AI_MODEL_DEFAULT );
 		if ( ! is_string( $current ) || ! array_key_exists( $current, WUAR_AI_MODELS ) ) {
 			$current = WUAR_AI_MODEL_DEFAULT;
 		}
@@ -301,7 +301,7 @@ class WUAR_Network_Admin {
 		$release_notes         = $release_notes_fetcher->fetch( $diff_items );
 
 		$ai_reporter = new WUAR_AI_Reporter();
-		$report      = $ai_reporter->generate( $diff_items, $release_notes );
+		$report      = $ai_reporter->generate( $diff_items, $release_notes, $this->get_current_ai_model() );
 
 		if ( is_wp_error( $report ) ) {
 			wp_send_json_error( [ 'message' => $report->get_error_message() ] );
