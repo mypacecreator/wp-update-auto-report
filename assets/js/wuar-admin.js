@@ -221,15 +221,22 @@
 		let inList    = false;
 		let tableRows = [];
 
+		function splitTableRow( row ) {
+			// バックスラッシュでエスケープされた `\|` は区切りとして扱わず、リテラルの `|` に戻す
+			return row.split( /(?<!\\)\|/ ).slice( 1, -1 ).map(
+				( c ) => c.trim().replace( /\\\|/g, '|' )
+			);
+		}
+
 		function flushTable() {
 			if ( ! tableRows.length ) return;
 			const [ header, , ...body ] = tableRows;
-			const th = header.split( '|' ).slice( 1, -1 ).map(
-				( c ) => '<th>' + inline( c.trim() ) + '</th>'
+			const th = splitTableRow( header ).map(
+				( c ) => '<th>' + inline( c ) + '</th>'
 			).join( '' );
 			const trs = body.map(
-				( row ) => '<tr>' + row.split( '|' ).slice( 1, -1 ).map(
-					( c ) => '<td>' + inline( c.trim() ) + '</td>'
+				( row ) => '<tr>' + splitTableRow( row ).map(
+					( c ) => '<td>' + inline( c ) + '</td>'
 				).join( '' ) + '</tr>'
 			).join( '' );
 			out.push( '<table border="1" cellpadding="4" cellspacing="0"><thead><tr>' + th + '</tr></thead><tbody>' + trs + '</tbody></table>' );
