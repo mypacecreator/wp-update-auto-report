@@ -15,25 +15,27 @@
 
 	// ---- Snapshot --------------------------------------------------------
 
-	snapshotBtn.addEventListener( 'click', async () => {
-		snapshotBtn.disabled = true;
-		snapshotMsg.hidden = false;
-		snapshotMsg.textContent = '保存中...';
+	if ( snapshotBtn ) {
+		snapshotBtn.addEventListener( 'click', async () => {
+			snapshotBtn.disabled = true;
+			snapshotMsg.hidden = false;
+			snapshotMsg.textContent = '保存中...';
 
-		try {
-			const data = await post( 'wuar_network_save_snapshot' );
-			showSnapshotStatus( data.label );
-			snapshotMsg.textContent = '✓ 保存しました';
+			try {
+				const data = await post( 'wuar_network_save_snapshot' );
+				showSnapshotStatus( data.label );
+				snapshotMsg.textContent = '✓ 保存しました';
 
-			if ( generateBtn ) {
-				generateBtn.disabled = false;
+				if ( generateBtn ) {
+					generateBtn.disabled = false;
+				}
+			} catch ( err ) {
+				snapshotMsg.textContent = 'エラー: ' + err.message;
+			} finally {
+				snapshotBtn.disabled = false;
 			}
-		} catch ( err ) {
-			snapshotMsg.textContent = 'エラー: ' + err.message;
-		} finally {
-			snapshotBtn.disabled = false;
-		}
-	} );
+		} );
+	}
 
 	function showSnapshotStatus( label ) {
 		const statusEl = document.querySelector( '.wuar-snapshot-status' );

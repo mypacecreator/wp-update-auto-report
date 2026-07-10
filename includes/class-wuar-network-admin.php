@@ -12,6 +12,7 @@ class WUAR_Network_Admin {
 
 		add_action( 'network_admin_menu', [ $this, 'register_menu' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+		add_action( 'network_admin_edit_wuar_save_ai_model', [ $this, 'handle_save_ai_model' ] );
 		add_action( 'wp_ajax_wuar_network_save_snapshot', [ $this, 'ajax_save_snapshot' ] );
 		add_action( 'wp_ajax_wuar_network_generate_report', [ $this, 'ajax_generate_report' ] );
 		add_action( 'wp_ajax_wuar_network_generate_ai_report', [ $this, 'ajax_generate_ai_report' ] );
@@ -74,6 +75,12 @@ class WUAR_Network_Admin {
 		<div class="wrap wuar-wrap">
 			<h1><?php esc_html_e( 'WP レポート生成（ネットワーク全体）', 'wp-update-auto-report' ); ?></h1>
 			<p><?php esc_html_e( 'ネットワークにインストールされている全プラグイン・全テーマ（有効・無効問わず）を対象に、コアも含めたアップデート差分をまとめてレポートします。', 'wp-update-auto-report' ); ?></p>
+
+			<?php if ( isset( $_GET['updated'] ) ) : ?>
+				<div class="notice notice-success is-dismissible">
+					<p><?php esc_html_e( '設定を保存しました。', 'wp-update-auto-report' ); ?></p>
+				</div>
+			<?php endif; ?>
 
 			<div class="wuar-step">
 				<h2><?php esc_html_e( 'STEP 1 — アップデート前にスナップショットを取得', 'wp-update-auto-report' ); ?></h2>
@@ -187,8 +194,51 @@ class WUAR_Network_Admin {
 					<span id="wuar-reset-msg" class="wuar-inline-msg" hidden></span>
 				<?php endif; ?>
 			</div>
+
+			<?php if ( function_exists( 'wp_ai_client_prompt' ) ) : ?>
+			<hr>
+
+			<div class="wuar-step">
+				<h2><?php esc_html_e( '設定 — AI モデル選択', 'wp-update-auto-report' ); ?></h2>
+				<form method="post" action="<?php echo esc_url( network_admin_url( 'edit.php?action=wuar_save_ai_model' ) ); ?>">
+					<?php wp_nonce_field( 'wuar_network_ai_model' ); ?>
+					<?php $current_model = $this->get_current_ai_model(); ?>
+					<select name="wuar_ai_model" id="wuar_ai_model">
+						<?php foreach ( WUAR_AI_MODELS as $model_id => $label ) : ?>
+							<option value="<?php echo esc_attr( $model_id ); ?>" <?php selected( $current_model, $model_id ); ?>><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<?php submit_button( __( '設定を保存', 'wp-update-auto-report' ) ); ?>
+				</form>
+			</div>
+			<?php endif; ?>
 		</div>
 		<?php
+	}
+
+	public function handle_save_ai_model(): void {
+		check_admin_referer( 'wuar_network_ai_model' );
+
+		if ( ! current_user_can( 'manage_network' ) ) {
+			wp_die( esc_html__( '権限がありません。', 'wp-update-auto-report' ) );
+		}
+
+		$model_id = isset( $_POST['wuar_ai_model'] ) ? sanitize_text_field( wp_unslash( $_POST['wuar_ai_model'] ) ) : '';
+		if ( ! array_key_exists( $model_id, WUAR_AI_MODELS ) ) {
+			$model_id = WUAR_AI_MODEL_DEFAULT;
+		}
+		update_option( 'wuar_ai_model', $model_id );
+
+		wp_safe_redirect( add_query_arg( 'updated', 'true', network_admin_url( 'settings.php?page=wuar-network-report' ) ) );
+		exit;
+	}
+
+	private function get_current_ai_model(): string {
+		$current = get_option( 'wuar_ai_model', WUAR_AI_MODEL_DEFAULT );
+		if ( ! is_string( $current ) || ! array_key_exists( $current, WUAR_AI_MODELS ) ) {
+			$current = WUAR_AI_MODEL_DEFAULT;
+		}
+		return $current;
 	}
 
 	public function ajax_save_snapshot(): void {
