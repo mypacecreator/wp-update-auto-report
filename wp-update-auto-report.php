@@ -3,7 +3,7 @@
  * Plugin Name:       WP Update Auto Report
  * Plugin URI:        https://github.com/mypacecreator/wp-update-auto-report
  * Description:       WordPress コア・プラグイン・テーマのアップデート差分を検知し、クライアント提出用の月次作業報告書を自動生成します。
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * Author:            mypacecreator
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WUAR_VERSION', '1.0.0' );
+define( 'WUAR_VERSION', '1.1.0' );
 define( 'WUAR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WUAR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -39,6 +39,8 @@ require_once WUAR_PLUGIN_DIR . 'includes/class-wuar-version-tracker.php';
 require_once WUAR_PLUGIN_DIR . 'includes/class-wuar-admin.php';
 require_once WUAR_PLUGIN_DIR . 'includes/class-wuar-release-notes.php';
 require_once WUAR_PLUGIN_DIR . 'includes/class-wuar-ai-reporter.php';
+require_once WUAR_PLUGIN_DIR . 'includes/class-wuar-network-version-tracker.php';
+require_once WUAR_PLUGIN_DIR . 'includes/class-wuar-network-admin.php';
 
 final class WP_Update_Auto_Report {
 
@@ -53,7 +55,12 @@ final class WP_Update_Auto_Report {
 
 	private function __construct() {
 		load_plugin_textdomain( 'wp-update-auto-report', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
-		new WUAR_Admin();
+
+		if ( is_multisite() ) {
+			new WUAR_Network_Admin();
+		} else {
+			new WUAR_Admin();
+		}
 	}
 }
 
