@@ -1,4 +1,4 @@
-/* global wuarData */
+/* global wuarNetworkData */
 ( function () {
 	'use strict';
 
@@ -15,25 +15,27 @@
 
 	// ---- Snapshot --------------------------------------------------------
 
-	snapshotBtn.addEventListener( 'click', async () => {
-		snapshotBtn.disabled = true;
-		snapshotMsg.hidden = false;
-		snapshotMsg.textContent = '保存中...';
+	if ( snapshotBtn ) {
+		snapshotBtn.addEventListener( 'click', async () => {
+			snapshotBtn.disabled = true;
+			snapshotMsg.hidden = false;
+			snapshotMsg.textContent = '保存中...';
 
-		try {
-			const data = await post( 'wuar_save_snapshot' );
-			showSnapshotStatus( data.label );
-			snapshotMsg.textContent = '✓ 保存しました';
+			try {
+				const data = await post( 'wuar_network_save_snapshot' );
+				showSnapshotStatus( data.label );
+				snapshotMsg.textContent = '✓ 保存しました';
 
-			if ( generateBtn ) {
-				generateBtn.disabled = false;
+				if ( generateBtn ) {
+					generateBtn.disabled = false;
+				}
+			} catch ( err ) {
+				snapshotMsg.textContent = 'エラー: ' + err.message;
+			} finally {
+				snapshotBtn.disabled = false;
 			}
-		} catch ( err ) {
-			snapshotMsg.textContent = 'エラー: ' + err.message;
-		} finally {
-			snapshotBtn.disabled = false;
-		}
-	} );
+		} );
+	}
 
 	function showSnapshotStatus( label ) {
 		const statusEl = document.querySelector( '.wuar-snapshot-status' );
@@ -53,7 +55,7 @@
 			resultArea.hidden = true;
 
 			try {
-				const data = await post( 'wuar_generate_report' );
+				const data = await post( 'wuar_network_generate_report' );
 				resultTA.value = data.report;
 				resultArea.hidden = false;
 			} catch ( err ) {
@@ -76,7 +78,7 @@
 			resultArea.hidden = true;
 
 			try {
-				const data = await post( 'wuar_generate_ai_report' );
+				const data = await post( 'wuar_network_generate_ai_report' );
 				resultTA.value = data.report;
 				resultArea.hidden = false;
 			} catch ( err ) {
@@ -92,7 +94,7 @@
 
 	if ( resetSnapshotBtn ) {
 		resetSnapshotBtn.addEventListener( 'click', async () => {
-			if ( ! confirm( 'スナップショットをリセットしますか？\n\nリセット後は現在の差分情報が失われます。レポートを生成済みであることを確認してください。' ) ) {
+			if ( ! confirm( 'ネットワーク内の全サイトのスナップショットをリセットしますか？\n\nリセット後は現在の差分情報が失われます。レポートを生成済みであることを確認してください。' ) ) {
 				return;
 			}
 
@@ -101,7 +103,7 @@
 			resetMsg.textContent = 'リセット中...';
 
 			try {
-				const data = await post( 'wuar_reset_snapshot' );
+				const data = await post( 'wuar_network_reset_snapshot' );
 				resetMsg.textContent = '✓ ' + data.message;
 
 				// Keep button disabled until reload
@@ -171,7 +173,7 @@
 			const url  = URL.createObjectURL( blob );
 			const a    = Object.assign( document.createElement( 'a' ), {
 				href:     url,
-				download: 'report_' + wuarData.today + '.md',
+				download: 'network_report_' + wuarNetworkData.today + '.md',
 			} );
 			document.body.appendChild( a );
 			a.click();
@@ -185,9 +187,9 @@
 	async function post( action ) {
 		const body = new URLSearchParams( {
 			action,
-			_ajax_nonce: wuarData.nonce,
+			_ajax_nonce: wuarNetworkData.nonce,
 		} );
-		const res  = await fetch( wuarData.ajaxUrl, { method: 'POST', body } );
+		const res  = await fetch( wuarNetworkData.ajaxUrl, { method: 'POST', body } );
 		const json = await res.json();
 		if ( ! json.success ) {
 			throw new Error( json.data?.message ?? '不明なエラー' );

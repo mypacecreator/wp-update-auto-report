@@ -3,95 +3,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class WUAR_Admin {
+class WUAR_Network_Admin {
 
-	private WUAR_Version_Tracker $tracker;
+	private WUAR_Network_Version_Tracker $tracker;
 
 	public function __construct() {
-		$this->tracker = new WUAR_Version_Tracker();
+		$this->tracker = new WUAR_Network_Version_Tracker();
 
-		add_action( 'admin_menu', [ $this, 'register_menu' ] );
-		add_action( 'admin_init', [ $this, 'register_settings' ] );
+		add_action( 'network_admin_menu', [ $this, 'register_menu' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
-
-		// マルチサイトでは個別サイトのレポート機能を無効化し、ネットワーク管理画面（WUAR_Network_Admin）に一本化する。
-		if ( ! is_multisite() ) {
-			add_action( 'wp_ajax_wuar_save_snapshot', [ $this, 'ajax_save_snapshot' ] );
-			add_action( 'wp_ajax_wuar_generate_report', [ $this, 'ajax_generate_report' ] );
-			add_action( 'wp_ajax_wuar_generate_ai_report', [ $this, 'ajax_generate_ai_report' ] );
-			add_action( 'wp_ajax_wuar_reset_snapshot', [ $this, 'ajax_reset_snapshot' ] );
-		}
-	}
-
-	public function register_settings(): void {
-		register_setting(
-			'wuar_settings',
-			'wuar_ai_model',
-			[
-				'type'              => 'string',
-				'sanitize_callback' => [ $this, 'sanitize_ai_model' ],
-				'default'           => WUAR_AI_MODEL_DEFAULT,
-			]
-		);
-
-		add_settings_section(
-			'wuar_ai_settings_section',
-			'',
-			'__return_empty_string',
-			'wuar-report'
-		);
-
-		add_settings_field(
-			'wuar_ai_model',
-			__( 'AI モデル', 'wp-update-auto-report' ),
-			[ $this, 'render_ai_model_field' ],
-			'wuar-report',
-			'wuar_ai_settings_section',
-			[ 'label_for' => 'wuar_ai_model' ]
-		);
-	}
-
-	public function sanitize_ai_model( $value ): string {
-		if ( ! is_string( $value ) ) {
-			return WUAR_AI_MODEL_DEFAULT;
-		}
-		return array_key_exists( $value, WUAR_AI_MODELS ) ? $value : WUAR_AI_MODEL_DEFAULT;
-	}
-
-	public function render_ai_model_field(): void {
-		$current = get_option( 'wuar_ai_model', WUAR_AI_MODEL_DEFAULT );
-		if ( ! is_string( $current ) || ! array_key_exists( $current, WUAR_AI_MODELS ) ) {
-			$current = WUAR_AI_MODEL_DEFAULT;
-		}
-		echo '<select name="wuar_ai_model" id="wuar_ai_model">';
-		foreach ( WUAR_AI_MODELS as $model_id => $label ) {
-			printf(
-				'<option value="%s"%s>%s</option>',
-				esc_attr( $model_id ),
-				selected( $current, $model_id, false ),
-				esc_html( $label )
-			);
-		}
-		echo '</select>';
+		add_action( 'network_admin_edit_wuar_save_ai_model', [ $this, 'handle_save_ai_model' ] );
+		add_action( 'wp_ajax_wuar_network_save_snapshot', [ $this, 'ajax_save_snapshot' ] );
+		add_action( 'wp_ajax_wuar_network_generate_report', [ $this, 'ajax_generate_report' ] );
+		add_action( 'wp_ajax_wuar_network_generate_ai_report', [ $this, 'ajax_generate_ai_report' ] );
+		add_action( 'wp_ajax_wuar_network_reset_snapshot', [ $this, 'ajax_reset_snapshot' ] );
 	}
 
 	public function register_menu(): void {
-		// マルチサイトでは個別サイトの「ツール」メニューを表示しない（ネットワーク管理画面に一本化）。
-		if ( is_multisite() ) {
-			return;
-		}
-
-		add_management_page(
+		add_submenu_page(
+			'settings.php',
+			__( 'WP レポート生成（ネットワーク）', 'wp-update-auto-report' ),
 			__( 'WP レポート生成', 'wp-update-auto-report' ),
-			__( 'WP レポート生成', 'wp-update-auto-report' ),
-			'manage_options',
-			'wuar-report',
+			'manage_network',
+			'wuar-network-report',
 			[ $this, 'render_page' ]
 		);
 	}
 
 	public function enqueue_assets( string $hook ): void {
-		if ( 'tools_page_wuar-report' !== $hook ) {
+		if ( 'settings_page_wuar-network-report' !== $hook ) {
 			return;
 		}
 
@@ -103,19 +43,19 @@ class WUAR_Admin {
 		);
 
 		wp_enqueue_script(
-			'wuar-admin',
-			WUAR_PLUGIN_URL . 'assets/js/wuar-admin.js',
+			'wuar-network-admin',
+			WUAR_PLUGIN_URL . 'assets/js/wuar-network-admin.js',
 			[],
 			WUAR_VERSION,
 			true
 		);
 
 		wp_localize_script(
-			'wuar-admin',
-			'wuarData',
+			'wuar-network-admin',
+			'wuarNetworkData',
 			[
 				'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
-				'nonce'         => wp_create_nonce( 'wuar_nonce' ),
+				'nonce'         => wp_create_nonce( 'wuar_network_nonce' ),
 				'today'         => wp_date( 'Ymd' ),
 				'hasSnapshot'   => $this->tracker->get_snapshot() ? '1' : '0',
 				'snapshotLabel' => $this->get_snapshot_label(),
@@ -124,16 +64,23 @@ class WUAR_Admin {
 	}
 
 	public function render_page(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'manage_network' ) ) {
 			wp_die( esc_html__( '権限がありません。', 'wp-update-auto-report' ) );
 		}
 
-		$snapshot      = $this->tracker->get_snapshot();
-		$has_snapshot  = (bool) $snapshot;
-		$diff_items    = $has_snapshot ? $this->tracker->get_diff_items() : [];
+		$snapshot     = $this->tracker->get_snapshot();
+		$has_snapshot = (bool) $snapshot;
+		$diff_items   = $has_snapshot ? $this->tracker->get_diff_items() : [];
 		?>
 		<div class="wrap wuar-wrap">
-			<h1><?php esc_html_e( 'WP レポート生成', 'wp-update-auto-report' ); ?></h1>
+			<h1><?php esc_html_e( 'WP レポート生成（ネットワーク全体）', 'wp-update-auto-report' ); ?></h1>
+			<p><?php esc_html_e( 'ネットワークにインストールされている全プラグイン・全テーマ（有効・無効問わず）を対象に、コアも含めたアップデート差分をまとめてレポートします。', 'wp-update-auto-report' ); ?></p>
+
+			<?php if ( isset( $_GET['updated'] ) ) : ?>
+				<div class="notice notice-success is-dismissible">
+					<p><?php esc_html_e( '設定を保存しました。', 'wp-update-auto-report' ); ?></p>
+				</div>
+			<?php endif; ?>
 
 			<div class="wuar-step">
 				<h2><?php esc_html_e( 'STEP 1 — アップデート前にスナップショットを取得', 'wp-update-auto-report' ); ?></h2>
@@ -253,13 +200,15 @@ class WUAR_Admin {
 
 			<div class="wuar-step">
 				<h2><?php esc_html_e( '設定 — AI モデル選択', 'wp-update-auto-report' ); ?></h2>
-				<?php settings_errors(); ?>
-				<form method="post" action="options.php">
-					<?php
-					settings_fields( 'wuar_settings' );
-					do_settings_sections( 'wuar-report' );
-					submit_button( __( '設定を保存', 'wp-update-auto-report' ) );
-					?>
+				<form method="post" action="<?php echo esc_url( network_admin_url( 'edit.php?action=wuar_save_ai_model' ) ); ?>">
+					<?php wp_nonce_field( 'wuar_network_ai_model' ); ?>
+					<?php $current_model = $this->get_current_ai_model(); ?>
+					<select name="wuar_ai_model" id="wuar_ai_model">
+						<?php foreach ( WUAR_AI_MODELS as $model_id => $label ) : ?>
+							<option value="<?php echo esc_attr( $model_id ); ?>" <?php selected( $current_model, $model_id ); ?>><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<?php submit_button( __( '設定を保存', 'wp-update-auto-report' ) ); ?>
 				</form>
 			</div>
 			<?php endif; ?>
@@ -267,10 +216,35 @@ class WUAR_Admin {
 		<?php
 	}
 
-	public function ajax_save_snapshot(): void {
-		check_ajax_referer( 'wuar_nonce' );
+	public function handle_save_ai_model(): void {
+		check_admin_referer( 'wuar_network_ai_model' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'manage_network' ) ) {
+			wp_die( esc_html__( '権限がありません。', 'wp-update-auto-report' ) );
+		}
+
+		$model_id = isset( $_POST['wuar_ai_model'] ) ? sanitize_text_field( wp_unslash( $_POST['wuar_ai_model'] ) ) : '';
+		if ( ! array_key_exists( $model_id, WUAR_AI_MODELS ) ) {
+			$model_id = WUAR_AI_MODEL_DEFAULT;
+		}
+		update_site_option( 'wuar_ai_model', $model_id );
+
+		wp_safe_redirect( add_query_arg( 'updated', 'true', network_admin_url( 'settings.php?page=wuar-network-report' ) ) );
+		exit;
+	}
+
+	private function get_current_ai_model(): string {
+		$current = get_site_option( 'wuar_ai_model', WUAR_AI_MODEL_DEFAULT );
+		if ( ! is_string( $current ) || ! array_key_exists( $current, WUAR_AI_MODELS ) ) {
+			$current = WUAR_AI_MODEL_DEFAULT;
+		}
+		return $current;
+	}
+
+	public function ajax_save_snapshot(): void {
+		check_ajax_referer( 'wuar_network_nonce' );
+
+		if ( ! current_user_can( 'manage_network' ) ) {
 			wp_send_json_error( [ 'message' => __( '権限がありません。', 'wp-update-auto-report' ) ] );
 		}
 
@@ -288,9 +262,9 @@ class WUAR_Admin {
 	}
 
 	public function ajax_generate_report(): void {
-		check_ajax_referer( 'wuar_nonce' );
+		check_ajax_referer( 'wuar_network_nonce' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'manage_network' ) ) {
 			wp_send_json_error( [ 'message' => __( '権限がありません。', 'wp-update-auto-report' ) ] );
 		}
 
@@ -304,9 +278,9 @@ class WUAR_Admin {
 	}
 
 	public function ajax_generate_ai_report(): void {
-		check_ajax_referer( 'wuar_nonce' );
+		check_ajax_referer( 'wuar_network_nonce' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'manage_network' ) ) {
 			wp_send_json_error( [ 'message' => __( '権限がありません。', 'wp-update-auto-report' ) ] );
 		}
 
@@ -327,7 +301,7 @@ class WUAR_Admin {
 		$release_notes         = $release_notes_fetcher->fetch( $diff_items );
 
 		$ai_reporter = new WUAR_AI_Reporter();
-		$report      = $ai_reporter->generate( $diff_items, $release_notes );
+		$report      = $ai_reporter->generate( $diff_items, $release_notes, $this->get_current_ai_model() );
 
 		if ( is_wp_error( $report ) ) {
 			wp_send_json_error( [ 'message' => $report->get_error_message() ] );
@@ -337,9 +311,9 @@ class WUAR_Admin {
 	}
 
 	public function ajax_reset_snapshot(): void {
-		check_ajax_referer( 'wuar_nonce' );
+		check_ajax_referer( 'wuar_network_nonce' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'manage_network' ) ) {
 			wp_send_json_error( [ 'message' => __( '権限がありません。', 'wp-update-auto-report' ) ] );
 		}
 
