@@ -15,7 +15,7 @@ WordPress コア・プラグイン・テーマのアップデート差分を記�
 
 - WordPress 7.0 以上
 - Connectors API の設定（管理画面 ＞ 設定 ＞ コネクタ）
-  - 対応プロバイダー: OpenAI / Anthropic / Google など
+  - 対応プロバイダー: Anthropic（Claude）のみ対応
 
 ---
 
@@ -84,8 +84,8 @@ WordPress 7.0 で導入された **Connectors API** を使い、各アップデ�
 
 1. **WordPress 7.0 以上**
 2. **Connectors API の設定**
-   - 管理画面 ＞ **設定 ＞ コネクタ** でAIプロバイダーを設定
-   - 対応プロバイダー: OpenAI / Anthropic / Google など
+   - 管理画面 ＞ **設定 ＞ コネクタ** でAnthropic（Claude）を設定
+   - 対応プロバイダー: Anthropic（Claude）のみ対応
 
 ### 仕組み
 
