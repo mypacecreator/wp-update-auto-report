@@ -25,7 +25,10 @@ class WUAR_Network_Version_Tracker {
 		update_site_option( self::OPTION_KEY, $snapshot );
 	}
 
-	public function get_snapshot(): array|false {
+	/**
+	 * @return array|false
+	 */
+	public function get_snapshot() {
 		$snapshot = get_site_option( self::OPTION_KEY, false );
 		return is_array( $snapshot ) ? $snapshot : false;
 	}
