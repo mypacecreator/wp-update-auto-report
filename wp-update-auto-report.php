@@ -3,9 +3,9 @@
  * Plugin Name:       WP Update Auto Report
  * Plugin URI:        https://github.com/mypacecreator/wp-update-auto-report
  * Description:       WordPress コア・プラグイン・テーマのアップデート差分を検知し、クライアント提出用の月次作業報告書を自動生成します。
- * Version:           1.1.0
+ * Version:           1.1.1
  * Requires at least: 6.0
- * Requires PHP:      8.0
+ * Requires PHP:      7.4
  * Author:            mypacecreator
  * Author URI:        https://github.com/mypacecreator
  * License:           GPL-2.0-or-later
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WUAR_VERSION', '1.1.0' );
+define( 'WUAR_VERSION', '1.1.1' );
 define( 'WUAR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WUAR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
